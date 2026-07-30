@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_app/kelola-materi/$id")({
 const STAGE_DESCRIPTIONS: Record<LearningStage, string> = {
   pembentukanKelompok: "Bagi siswa ke dalam kelompok kecil secara heterogen.",
   pemberianTeks: "Sediakan teks bacaan yang akan dipelajari kelompok.",
-  membaca: "Siswa membaca dan memahami teks secara mandiri/berpasangan.",
+  membaca: "Siswa membaca dan memahami teks secara berpasangan.",
   diskusi: "Diskusi kelompok mengenai isi bacaan.",
   menulisTanggapan: "Kelompok menulis rangkuman atau tanggapan tertulis.",
   presentasi: "Perwakilan kelompok mempresentasikan hasil diskusi.",
