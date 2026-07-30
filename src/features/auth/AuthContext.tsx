@@ -22,6 +22,29 @@ const STORAGE_KEY = "histosky.auth.user";
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
+ * Baca user yang sedang login langsung dari localStorage secara sinkron.
+ *
+ * `useAuth()` hanya bisa dipakai di dalam komponen React, sedangkan route
+ * guard (`beforeLoad`) di TanStack Router berjalan DI LUAR render React,
+ * sebelum komponen halaman dipasang. Untuk proteksi route (bukan cuma
+ * sembunyikan tombol), guard butuh cara membaca sesi login tanpa context.
+ *
+ * Catatan: karena auth saat ini murni client-side (belum ada session token
+ * dari server), ini adalah proteksi level routing/UX yang mencegah halaman
+ * guru ter-render untuk siswa. Untuk proteksi data yang sesungguhnya
+ * (mencegah query Supabase langsung), tambahkan juga Row Level Security
+ * berbasis role begitu backend auth Supabase terpasang.
+ */
+export function getStoredUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Auth logic is intentionally isolated in this provider.
  * Replace `authenticate` with a real API/DB call later —
  * the rest of the app only depends on the context surface.

@@ -17,8 +17,10 @@ import {
 import { MEETINGS } from "@/features/meetings/data";
 import type { QuizItem } from "@/features/meetings/types";
 import { toast } from "sonner";
+import { requireGuru } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/kelola-quiz")({
+  beforeLoad: requireGuru,
   component: KelolaQuiz,
 });
 

@@ -9,8 +9,10 @@ import {
   saveMateriKontenStep,
   type MateriKontenMap,
 } from "@/lib/materi-konten";
+import { requireGuru } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/kelola-materi/$id")({
+  beforeLoad: requireGuru,
   loader: async ({ params }) => {
     const meetingId = Number(params.id);
     const content = await fetchMateriKonten(meetingId);

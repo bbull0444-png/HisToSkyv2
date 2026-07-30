@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil, Save, X, Trash2, Plus } from "lucide-react";
+import { requireGuru } from "@/lib/route-guards";
 
 interface Student {
   id: number;
@@ -39,6 +40,7 @@ const emptyForm: StudentForm = {
 };
 
 export const Route = createFileRoute("/_app/data-siswa")({
+  beforeLoad: requireGuru,
   component: () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);

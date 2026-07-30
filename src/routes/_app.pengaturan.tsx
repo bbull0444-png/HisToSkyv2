@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { requireGuru } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/pengaturan")({
+  beforeLoad: requireGuru,
   component: () => {
     const [className, setClassName] = useState("");
     const [schoolYear, setSchoolYear] = useState("");

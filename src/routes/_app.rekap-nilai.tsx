@@ -35,6 +35,7 @@ import {
 import { MEETINGS } from "@/features/meetings/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { requireGuru } from "@/lib/route-guards";
 
 const NAMES = ["Aisyah", "Budi", "Citra", "Dimas", "Eka", "Fajar", "Gita", "Hana"];
 
@@ -50,6 +51,7 @@ const MEETING_DATES: Record<number, Date> = Object.fromEntries(
 type SortKey = "name-asc" | "name-desc" | "avg-asc" | "avg-desc";
 
 export const Route = createFileRoute("/_app/rekap-nilai")({
+  beforeLoad: requireGuru,
   component: RekapNilai,
 });
 

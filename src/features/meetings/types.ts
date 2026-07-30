@@ -8,6 +8,12 @@ export type LearningStage =
   | "evaluasi"
   | "penghargaan";
 
+/**
+ * Status progres pengerjaan pertemuan DARI SUDUT PANDANG SISWA.
+ * Berbeda dari `Meeting.status` ("published"/"draft") yang dikontrol guru.
+ */
+export type MeetingProgressStatus = "locked" | "not-started" | "in-progress" | "completed";
+
 export interface Meeting {
   id: number;
   title: string;

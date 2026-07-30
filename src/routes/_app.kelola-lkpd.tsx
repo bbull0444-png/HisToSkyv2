@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { MEETINGS } from "@/features/meetings/data";
 import { toast } from "sonner";
+import { requireGuru } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/kelola-lkpd")({
+  beforeLoad: requireGuru,
   component: KelolaLkpd,
 });
 

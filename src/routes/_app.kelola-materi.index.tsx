@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MEETINGS } from "@/features/meetings/data";
+import { requireGuru } from "@/lib/route-guards";
 
 // PENTING: path diakhiri "/" -> ini yang membuatnya jadi INDEX route
 // (sibling dari $id, bukan parent-nya)
 export const Route = createFileRoute("/_app/kelola-materi/")({
+  beforeLoad: requireGuru,
   component: KelolaMateri,
 });
 

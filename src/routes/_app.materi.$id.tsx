@@ -1,11 +1,17 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { createFileRoute, Link, notFound, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle2, PartyPopper } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMeeting } from "@/features/meetings/data";
 import { STAGES, type LearningStage } from "@/features/meetings/types";
 import { fetchMateriKonten, type MateriKontenMap } from "@/lib/materi-konten";
+import {
+  isMeetingCompleted,
+  isMeetingUnlocked,
+  markMeetingCompleted,
+  markMeetingOpened,
+} from "@/features/meetings/progress";
 import "@/components/editor/editor.css";
 
 export const Route = createFileRoute("/_app/materi/$id")({
@@ -13,6 +19,15 @@ export const Route = createFileRoute("/_app/materi/$id")({
     const meetingId = Number(params.id);
     const meeting = getMeeting(meetingId);
     if (!meeting) throw notFound();
+
+    // Siswa yang mengakses URL pertemuan terkunci langsung (belum
+    // menyelesaikan pertemuan sebelumnya) dikembalikan ke daftar materi.
+    // Guru boleh tetap melihat semua pertemuan untuk keperluan pratinjau,
+    // jadi pengecekan ini hanya relevan untuk alur normal siswa.
+    if (!isMeetingUnlocked(meetingId)) {
+      throw redirect({ to: "/materi" });
+    }
+
     const content = await fetchMateriKonten(meetingId);
     return { meeting, content };
   },
@@ -29,9 +44,16 @@ export const Route = createFileRoute("/_app/materi/$id")({
 
 function MateriDetail() {
   const { meeting, content } = Route.useLoaderData();
+  const navigate = useNavigate();
   const [stage, setStage] = useState<LearningStage>(STAGES[0].key);
+  const [completed, setCompleted] = useState(() => isMeetingCompleted(meeting.id));
   const currentIdx = STAGES.findIndex((s) => s.key === stage);
+  const isLastStage = currentIdx === STAGES.length - 1;
   const progress = ((currentIdx + 1) / STAGES.length) * 100;
+
+  useEffect(() => {
+    markMeetingOpened(meeting.id);
+  }, [meeting.id]);
 
   const goNext = () => {
     if (currentIdx < STAGES.length - 1) setStage(STAGES[currentIdx + 1].key);
@@ -40,12 +62,17 @@ function MateriDetail() {
     if (currentIdx > 0) setStage(STAGES[currentIdx - 1].key);
   };
 
+  const handleComplete = () => {
+    markMeetingCompleted(meeting.id);
+    setCompleted(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
-            <Link to="/kelola-materi">
+            <Link to="/materi">
               <ArrowLeft className="mr-1 h-4 w-4" /> Semua Pertemuan
             </Link>
           </Button>
@@ -97,10 +124,34 @@ function MateriDetail() {
         <div className="text-xs text-muted-foreground">
           Tahap {currentIdx + 1} dari {STAGES.length}
         </div>
-        <Button onClick={goNext} disabled={currentIdx === STAGES.length - 1}>
-          Selanjutnya
-        </Button>
+        {isLastStage ? (
+          completed ? (
+            <Button disabled className="gap-1.5">
+              <CheckCircle2 className="h-4 w-4" />
+              Pertemuan Selesai
+            </Button>
+          ) : (
+            <Button onClick={handleComplete} className="gap-1.5">
+              <PartyPopper className="h-4 w-4" />
+              Tandai Selesai
+            </Button>
+          )
+        ) : (
+          <Button onClick={goNext}>Selanjutnya</Button>
+        )}
       </div>
+
+      {isLastStage && completed && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          Pertemuan {meeting.id} sudah kamu selesaikan. Pertemuan berikutnya sekarang terbuka.{" "}
+          <button
+            className="font-medium text-primary underline underline-offset-2"
+            onClick={() => navigate({ to: "/materi" })}
+          >
+            Lihat daftar pertemuan
+          </button>
+        </div>
+      )}
     </div>
   );
 }

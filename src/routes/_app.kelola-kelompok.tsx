@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 
 import GroupCard from "@/components/kelompok/GroupCard";
 import ShuffleDialog from "@/components/kelompok/ShuffleDialog";
+import { requireGuru } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/kelola-kelompok")({
+  beforeLoad: requireGuru,
   component: KelolaKelompokPage,
 });
 

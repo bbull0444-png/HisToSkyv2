@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { requireGuru } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/laporan")({
+  beforeLoad: requireGuru,
   component: () => (
     <div className="space-y-6">
       <div>
