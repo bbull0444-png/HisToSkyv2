@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 
 export type UserRole = "siswa" | "guru";
 
@@ -25,18 +26,40 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * Replace `authenticate` with a real API/DB call later —
  * the rest of the app only depends on the context surface.
  */
-async function authenticate(username: string, password: string, role: UserRole): Promise<AuthUser> {
-  // Static demo teacher account
+async function authenticate(
+  username: string,
+  password: string,
+  role: UserRole
+): Promise<AuthUser> {
+
   if (role === "guru") {
-    if (username === "Siberyanhusky" && password === "Cigondewah12") {
-      return {
-        id: "guru-1",
-        username,
-        name: "Bapak Siberyanhusky",
-        role: "guru",
-      };
+    // Cari guru berdasarkan username
+    const { data: guru, error: guruError } = await supabase
+      .from("guru")
+      .select("id, nama, email")
+      .eq("username", username)
+      .single();
+
+    if (guruError || !guru) {
+      throw new Error("Username guru tidak ditemukan");
     }
-    throw new Error("Username atau password guru tidak valid");
+
+    // Login ke Supabase Auth menggunakan email
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: guru.email,
+      password,
+    });
+
+    if (error || !data.user) {
+      throw new Error("Password guru tidak valid");
+    }
+
+    return {
+      id: guru.id,
+      username,
+      name: guru.nama,
+      role: "guru",
+    };
   }
 
   // Student demo: any non-empty credentials

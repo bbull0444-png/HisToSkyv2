@@ -1,3 +1,4 @@
+import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -75,7 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "HisToSky — Pembelajaran Sejarah CIRC" },
+      { title: "HisToSky" },
       {
         name: "description",
         content:
@@ -123,8 +124,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+
+      <Toaster
+        richColors
+        position="top-right"
+      />
     </QueryClientProvider>
   );
 }

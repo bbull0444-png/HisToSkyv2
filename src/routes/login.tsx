@@ -61,7 +61,7 @@ function LoginPage() {
               Menyusuri jejak sejarah, membangun pemahaman bersama.
             </h1>
             <p className="text-primary-foreground/80">
-              Platform pembelajaran sejarah berbasis model{" "}
+              Platform pembelajaran sejarah berbasis model Cooperative Learning tipe{" "}
               <span className="font-semibold">Cooperative Integrated Reading and Composition</span>{" "}
               (CIRC).
             </p>
@@ -142,13 +142,6 @@ function LoginPage() {
               </Button>
             </form>
 
-            {role === "guru" && (
-              <div className="mt-6 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                Demo akun guru:{" "}
-                <span className="font-mono font-medium text-foreground">Siberyanhusky</span> /{" "}
-                <span className="font-mono font-medium text-foreground">Cigondewah12</span>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

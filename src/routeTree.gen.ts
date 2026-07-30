@@ -14,8 +14,8 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppDataSiswaRouteImport } from './routes/_app.data-siswa'
+import { Route as AppKelolaKelompokRouteImport } from './routes/_app.kelola-kelompok'
 import { Route as AppKelolaLkpdRouteImport } from './routes/_app.kelola-lkpd'
-import { Route as AppKelolaMateriRouteImport } from './routes/_app.kelola-materi'
 import { Route as AppKelolaQuizRouteImport } from './routes/_app.kelola-quiz'
 import { Route as AppLaporanRouteImport } from './routes/_app.laporan'
 import { Route as AppNilaiRouteImport } from './routes/_app.nilai'
@@ -25,6 +25,8 @@ import { Route as AppPretestRouteImport } from './routes/_app.pretest'
 import { Route as AppProfilRouteImport } from './routes/_app.profil'
 import { Route as AppRefleksiRouteImport } from './routes/_app.refleksi'
 import { Route as AppRekapNilaiRouteImport } from './routes/_app.rekap-nilai'
+import { Route as AppKelolaMateriIndexRouteImport } from './routes/_app.kelola-materi.index'
+import { Route as AppKelolaMateriIdRouteImport } from './routes/_app.kelola-materi.$id'
 import { Route as AppMateriIndexRouteImport } from './routes/_app.materi.index'
 import { Route as AppMateriIdRouteImport } from './routes/_app.materi.$id'
 
@@ -52,14 +54,14 @@ const AppDataSiswaRoute = AppDataSiswaRouteImport.update({
   path: '/data-siswa',
   getParentRoute: () => AppRoute,
 } as any)
+const AppKelolaKelompokRoute = AppKelolaKelompokRouteImport.update({
+  id: '/kelola-kelompok',
+  path: '/kelola-kelompok',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppKelolaLkpdRoute = AppKelolaLkpdRouteImport.update({
   id: '/kelola-lkpd',
   path: '/kelola-lkpd',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppKelolaMateriRoute = AppKelolaMateriRouteImport.update({
-  id: '/kelola-materi',
-  path: '/kelola-materi',
   getParentRoute: () => AppRoute,
 } as any)
 const AppKelolaQuizRoute = AppKelolaQuizRouteImport.update({
@@ -107,6 +109,16 @@ const AppRekapNilaiRoute = AppRekapNilaiRouteImport.update({
   path: '/rekap-nilai',
   getParentRoute: () => AppRoute,
 } as any)
+const AppKelolaMateriIndexRoute = AppKelolaMateriIndexRouteImport.update({
+  id: '/kelola-materi/',
+  path: '/kelola-materi/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppKelolaMateriIdRoute = AppKelolaMateriIdRouteImport.update({
+  id: '/kelola-materi/$id',
+  path: '/kelola-materi/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMateriIndexRoute = AppMateriIndexRouteImport.update({
   id: '/materi/',
   path: '/materi/',
@@ -123,8 +135,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard': typeof AppDashboardRoute
   '/data-siswa': typeof AppDataSiswaRoute
+  '/kelola-kelompok': typeof AppKelolaKelompokRoute
   '/kelola-lkpd': typeof AppKelolaLkpdRoute
-  '/kelola-materi': typeof AppKelolaMateriRoute
   '/kelola-quiz': typeof AppKelolaQuizRoute
   '/laporan': typeof AppLaporanRoute
   '/nilai': typeof AppNilaiRoute
@@ -134,7 +146,9 @@ export interface FileRoutesByFullPath {
   '/profil': typeof AppProfilRoute
   '/refleksi': typeof AppRefleksiRoute
   '/rekap-nilai': typeof AppRekapNilaiRoute
+  '/kelola-materi/$id': typeof AppKelolaMateriIdRoute
   '/materi/$id': typeof AppMateriIdRoute
+  '/kelola-materi/': typeof AppKelolaMateriIndexRoute
   '/materi/': typeof AppMateriIndexRoute
 }
 export interface FileRoutesByTo {
@@ -142,8 +156,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/dashboard': typeof AppDashboardRoute
   '/data-siswa': typeof AppDataSiswaRoute
+  '/kelola-kelompok': typeof AppKelolaKelompokRoute
   '/kelola-lkpd': typeof AppKelolaLkpdRoute
-  '/kelola-materi': typeof AppKelolaMateriRoute
   '/kelola-quiz': typeof AppKelolaQuizRoute
   '/laporan': typeof AppLaporanRoute
   '/nilai': typeof AppNilaiRoute
@@ -153,7 +167,9 @@ export interface FileRoutesByTo {
   '/profil': typeof AppProfilRoute
   '/refleksi': typeof AppRefleksiRoute
   '/rekap-nilai': typeof AppRekapNilaiRoute
+  '/kelola-materi/$id': typeof AppKelolaMateriIdRoute
   '/materi/$id': typeof AppMateriIdRoute
+  '/kelola-materi': typeof AppKelolaMateriIndexRoute
   '/materi': typeof AppMateriIndexRoute
 }
 export interface FileRoutesById {
@@ -163,8 +179,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/data-siswa': typeof AppDataSiswaRoute
+  '/_app/kelola-kelompok': typeof AppKelolaKelompokRoute
   '/_app/kelola-lkpd': typeof AppKelolaLkpdRoute
-  '/_app/kelola-materi': typeof AppKelolaMateriRoute
   '/_app/kelola-quiz': typeof AppKelolaQuizRoute
   '/_app/laporan': typeof AppLaporanRoute
   '/_app/nilai': typeof AppNilaiRoute
@@ -174,7 +190,9 @@ export interface FileRoutesById {
   '/_app/profil': typeof AppProfilRoute
   '/_app/refleksi': typeof AppRefleksiRoute
   '/_app/rekap-nilai': typeof AppRekapNilaiRoute
+  '/_app/kelola-materi/$id': typeof AppKelolaMateriIdRoute
   '/_app/materi/$id': typeof AppMateriIdRoute
+  '/_app/kelola-materi/': typeof AppKelolaMateriIndexRoute
   '/_app/materi/': typeof AppMateriIndexRoute
 }
 export interface FileRouteTypes {
@@ -184,8 +202,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/data-siswa'
+    | '/kelola-kelompok'
     | '/kelola-lkpd'
-    | '/kelola-materi'
     | '/kelola-quiz'
     | '/laporan'
     | '/nilai'
@@ -195,7 +213,9 @@ export interface FileRouteTypes {
     | '/profil'
     | '/refleksi'
     | '/rekap-nilai'
+    | '/kelola-materi/$id'
     | '/materi/$id'
+    | '/kelola-materi/'
     | '/materi/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -203,8 +223,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/data-siswa'
+    | '/kelola-kelompok'
     | '/kelola-lkpd'
-    | '/kelola-materi'
     | '/kelola-quiz'
     | '/laporan'
     | '/nilai'
@@ -214,7 +234,9 @@ export interface FileRouteTypes {
     | '/profil'
     | '/refleksi'
     | '/rekap-nilai'
+    | '/kelola-materi/$id'
     | '/materi/$id'
+    | '/kelola-materi'
     | '/materi'
   id:
     | '__root__'
@@ -223,8 +245,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/dashboard'
     | '/_app/data-siswa'
+    | '/_app/kelola-kelompok'
     | '/_app/kelola-lkpd'
-    | '/_app/kelola-materi'
     | '/_app/kelola-quiz'
     | '/_app/laporan'
     | '/_app/nilai'
@@ -234,7 +256,9 @@ export interface FileRouteTypes {
     | '/_app/profil'
     | '/_app/refleksi'
     | '/_app/rekap-nilai'
+    | '/_app/kelola-materi/$id'
     | '/_app/materi/$id'
+    | '/_app/kelola-materi/'
     | '/_app/materi/'
   fileRoutesById: FileRoutesById
 }
@@ -281,18 +305,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDataSiswaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/kelola-kelompok': {
+      id: '/_app/kelola-kelompok'
+      path: '/kelola-kelompok'
+      fullPath: '/kelola-kelompok'
+      preLoaderRoute: typeof AppKelolaKelompokRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/kelola-lkpd': {
       id: '/_app/kelola-lkpd'
       path: '/kelola-lkpd'
       fullPath: '/kelola-lkpd'
       preLoaderRoute: typeof AppKelolaLkpdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/kelola-materi': {
-      id: '/_app/kelola-materi'
-      path: '/kelola-materi'
-      fullPath: '/kelola-materi'
-      preLoaderRoute: typeof AppKelolaMateriRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/kelola-quiz': {
@@ -358,6 +382,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRekapNilaiRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/kelola-materi/': {
+      id: '/_app/kelola-materi/'
+      path: '/kelola-materi'
+      fullPath: '/kelola-materi/'
+      preLoaderRoute: typeof AppKelolaMateriIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kelola-materi/$id': {
+      id: '/_app/kelola-materi/$id'
+      path: '/kelola-materi/$id'
+      fullPath: '/kelola-materi/$id'
+      preLoaderRoute: typeof AppKelolaMateriIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/materi/': {
       id: '/_app/materi/'
       path: '/materi'
@@ -378,8 +416,8 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataSiswaRoute: typeof AppDataSiswaRoute
+  AppKelolaKelompokRoute: typeof AppKelolaKelompokRoute
   AppKelolaLkpdRoute: typeof AppKelolaLkpdRoute
-  AppKelolaMateriRoute: typeof AppKelolaMateriRoute
   AppKelolaQuizRoute: typeof AppKelolaQuizRoute
   AppLaporanRoute: typeof AppLaporanRoute
   AppNilaiRoute: typeof AppNilaiRoute
@@ -389,15 +427,17 @@ interface AppRouteChildren {
   AppProfilRoute: typeof AppProfilRoute
   AppRefleksiRoute: typeof AppRefleksiRoute
   AppRekapNilaiRoute: typeof AppRekapNilaiRoute
+  AppKelolaMateriIdRoute: typeof AppKelolaMateriIdRoute
   AppMateriIdRoute: typeof AppMateriIdRoute
+  AppKelolaMateriIndexRoute: typeof AppKelolaMateriIndexRoute
   AppMateriIndexRoute: typeof AppMateriIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppDataSiswaRoute: AppDataSiswaRoute,
+  AppKelolaKelompokRoute: AppKelolaKelompokRoute,
   AppKelolaLkpdRoute: AppKelolaLkpdRoute,
-  AppKelolaMateriRoute: AppKelolaMateriRoute,
   AppKelolaQuizRoute: AppKelolaQuizRoute,
   AppLaporanRoute: AppLaporanRoute,
   AppNilaiRoute: AppNilaiRoute,
@@ -407,7 +447,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfilRoute: AppProfilRoute,
   AppRefleksiRoute: AppRefleksiRoute,
   AppRekapNilaiRoute: AppRekapNilaiRoute,
+  AppKelolaMateriIdRoute: AppKelolaMateriIdRoute,
   AppMateriIdRoute: AppMateriIdRoute,
+  AppKelolaMateriIndexRoute: AppKelolaMateriIndexRoute,
   AppMateriIndexRoute: AppMateriIndexRoute,
 }
 

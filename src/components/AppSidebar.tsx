@@ -47,13 +47,23 @@ const studentNav: NavItem[] = [
 
 const teacherNav: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+
   { title: "Kelola Materi", url: "/kelola-materi", icon: FolderKanban },
-  { title: "Kelola LKPD", url: "/kelola-lkpd", icon: ClipboardList },
-  { title: "Kelola Quiz", url: "/kelola-quiz", icon: FileQuestion },
+
+  { title: "Kelola Kelompok", url: "/kelola-kelompok", icon: Users },
+
+  { title: "Kelola Pretest", url: "/kelola-pretest", icon: FileQuestion },
+
+  { title: "Kelola Posttest", url: "/kelola-posttest", icon: FileCheck2 },
+
   { title: "Refleksi Siswa", url: "/refleksi", icon: MessageSquareHeart },
+
   { title: "Data Siswa", url: "/data-siswa", icon: Users },
+
   { title: "Rekap Nilai", url: "/rekap-nilai", icon: FileBarChart },
+
   { title: "Laporan Penelitian", url: "/laporan", icon: ScrollText },
+
   { title: "Pengaturan", url: "/pengaturan", icon: Settings },
 ];
 

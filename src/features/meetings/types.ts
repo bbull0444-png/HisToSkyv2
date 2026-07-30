@@ -1,32 +1,60 @@
 export type LearningStage =
-  "pendahuluan" | "reading" | "discussion" | "writing" | "presentation" | "reflection" | "quiz";
-
-export interface QuizItem {
-  question: string;
-  options: string[];
-  answerIndex: number;
-}
+  | "pembentukanKelompok"
+  | "pemberianTeks"
+  | "membaca"
+  | "diskusi"
+  | "menulisTanggapan"
+  | "presentasi"
+  | "evaluasi"
+  | "penghargaan";
 
 export interface Meeting {
   id: number;
   title: string;
   subtitle: string;
   status: "published" | "draft";
-  pendahuluan: string;
-  reading: string;
-  discussion: string[];
-  writing: string;
-  presentation: string;
-  reflection: string[];
-  quiz: QuizItem[];
+
+  pembentukanKelompok: string;
+  pemberianTeks: string;
+  membaca: string;
+  diskusi: string[];
+  menulisTanggapan: string;
+  presentasi: string;
+  evaluasi: string[];
+  penghargaan: string;
 }
 
 export const STAGES: { key: LearningStage; label: string }[] = [
-  { key: "pendahuluan", label: "Pendahuluan" },
-  { key: "reading", label: "Reading" },
-  { key: "discussion", label: "Discussion" },
-  { key: "writing", label: "Writing (LKPD)" },
-  { key: "presentation", label: "Presentation" },
-  { key: "reflection", label: "Reflection" },
-  { key: "quiz", label: "Quiz" },
+  {
+    key: "pembentukanKelompok",
+    label: "Pembentukan Kelompok Belajar",
+  },
+  {
+    key: "pemberianTeks",
+    label: "Pemberian Teks Bacaan",
+  },
+  {
+    key: "membaca",
+    label: "Membaca dan Memahami Teks",
+  },
+  {
+    key: "diskusi",
+    label: "Diskusi Isi Bacaan",
+  },
+  {
+    key: "menulisTanggapan",
+    label: "Menulis Tanggapan",
+  },
+  {
+    key: "presentasi",
+    label: "Presentasi Hasil Kelompok",
+  },
+  {
+    key: "evaluasi",
+    label: "Evaluasi Pembelajaran",
+  },
+  {
+    key: "penghargaan",
+    label: "Penghargaan Kelompok",
+  },
 ];

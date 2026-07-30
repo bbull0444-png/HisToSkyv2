@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MEETINGS } from "@/features/meetings/data";
 
-export const Route = createFileRoute("/_app/kelola-materi")({
+// PENTING: path diakhiri "/" -> ini yang membuatnya jadi INDEX route
+// (sibling dari $id, bukan parent-nya)
+export const Route = createFileRoute("/_app/kelola-materi/")({
   component: KelolaMateri,
 });
 
@@ -53,11 +55,15 @@ function KelolaMateri() {
                 <div className="mt-auto flex flex-wrap gap-2 pt-4">
                   <Button asChild size="sm" variant="outline">
                     <Link to="/materi/$id" params={{ id: String(m.id) }}>
-                      <Eye className="mr-1 h-3.5 w-3.5" /> Lihat
+                      <Eye className="mr-1 h-3.5 w-3.5" />
+                      Lihat
                     </Link>
                   </Button>
-                  <Button size="sm" variant="outline">
-                    <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/kelola-materi/$id" params={{ id: String(m.id) }}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" />
+                      Edit
+                    </Link>
                   </Button>
                   <Button
                     size="sm"

@@ -108,7 +108,7 @@ function TeacherDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard title="Total Siswa" value="32" icon={Users} />
+        <StatCard title="Total Siswa" value="41" icon={Users} />
         <StatCard
           title="Materi Publish"
           value={`${published}/${MEETINGS.length}`}
