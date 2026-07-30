@@ -350,6 +350,7 @@ export function Toolbar({ editor, onSave, isSaving }: ToolbarProps) {
           label="Rata Kiri"
           isActive={editor.isActive({ textAlign: "left" })}
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          disabled={editor.isActive("heading")}
         >
           <AlignLeft className="h-4 w-4" />
         </ToolbarButton>
