@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { MEETINGS } from "@/features/meetings/data";
+import { getOverallProgress } from "@/features/meetings/progress";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
@@ -53,9 +54,8 @@ function StatCard({
 
 function StudentDashboard() {
   const { user } = useAuth();
-  const completed = 3;
-  const total = MEETINGS.length;
-  const progressPct = Math.round((completed / total) * 100);
+  const { completed, total } = getOverallProgress();
+  const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -63,16 +63,17 @@ function StudentDashboard() {
         <div className="text-sm opacity-80">Selamat datang kembali,</div>
         <div className="text-2xl font-bold">{user?.name} 👋</div>
         <p className="mt-2 max-w-xl text-sm opacity-90">
-          Lanjutkan perjalanan belajar sejarahmu. Kamu sudah menyelesaikan {completed} dari {total}{" "}
-          pertemuan.
+          {completed === 0
+            ? "Ayo mulai perjalanan belajar sejarahmu dari Pertemuan 1."
+            : `Lanjutkan perjalanan belajar sejarahmu. Kamu sudah menyelesaikan ${completed} dari ${total} pertemuan.`}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard title="Pertemuan Selesai" value={`${completed}/${total}`} icon={BookOpen} />
         <StatCard title="Progres Belajar" value={`${progressPct}%`} icon={TrendingUp} />
-        <StatCard title="Nilai Rata-rata" value="86" icon={Trophy} hint="Baik sekali" />
-        <StatCard title="Pretest" value="Selesai" icon={FileQuestion} hint="Skor: 72" />
+        <StatCard title="Nilai Rata-rata" value="-" icon={Trophy} hint="Belum ada data" />
+        <StatCard title="Pretest" value="Belum dikerjakan" icon={FileQuestion} />
       </div>
 
       <Card>
