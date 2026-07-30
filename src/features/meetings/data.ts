@@ -8,46 +8,34 @@ const topics: Array<Pick<Meeting, "title" | "subtitle" | "pemberianTeks">> = [
       "JALUR REMPAH & INTERKONEKSI NUSANTARA.",
   },
   {
-    title: "VOC dan Monopoli Perdagangan",
-    subtitle: "Berdirinya kongsi dagang Belanda 1602",
+    title: "JATUHNYA KONSTANTINOPEL",
+    subtitle: "Great Reset Sejarah Global",
     pemberianTeks:
-      "Vereenigde Oostindische Compagnie (VOC) didirikan pada 20 Maret 1602 sebagai kongsi dagang Belanda dengan hak-hak istimewa (hak oktroi). VOC menerapkan monopoli perdagangan rempah-rempah dan sistem pelayaran hongi yang menindas rakyat Maluku.",
+      "JATUHNYA KONSTANTINOPEL.",
   },
   {
-    title: "Perlawanan Rakyat terhadap Kolonialisme",
-    subtitle: "Dari Sultan Hasanuddin sampai Pattimura",
+    title: "SAUDAGAR & PENGUASA LOKAL NUSANTARA + PERSAINGAN VOC-PORTUGIS-SPANUYOL-INGGRIS",
+    subtitle: "Gejolak kalangan Elit",
     pemberianTeks:
-      "Berbagai perlawanan muncul di seluruh Nusantara: Sultan Hasanuddin di Makassar, Pattimura di Maluku, Pangeran Diponegoro di Jawa, Tuanku Imam Bonjol di Sumatera Barat, dan Sisingamangaraja XII di Tapanuli. Meskipun bersifat kedaerahan, perlawanan ini menjadi cikal-bakal kesadaran nasional.",
+      "SAUDAGAR & PENGUASA LOKAL NUSANTARA + PERSAINGAN VOC-PORTUGIS-SPANUYOL-INGGRIS.",
   },
   {
-    title: "Politik Etis dan Pergerakan Nasional",
-    subtitle: "Edukasi, Irigasi, dan Emigrasi",
+    title: "PERLAWANAN DAERAH SEBELUM DAN SESUDAH ABAD KE-19",
+    subtitle: "Mempertahankan Kekuasaan dan Patriotisme",
     pemberianTeks:
-      "Politik Etis (1901) yang digagas Van Deventer melahirkan generasi terpelajar pribumi. Dari sinilah lahir organisasi Budi Utomo (1908), Sarekat Islam (1911), dan Indische Partij (1912) yang menandai era pergerakan nasional Indonesia.",
+      "PERLAWANAN DAERAH SEBELUM DAN SESUDAH ABAD KE-19.",
   },
   {
-    title: "Sumpah Pemuda dan Kesadaran Kebangsaan",
-    subtitle: "Kongres Pemuda II, 28 Oktober 1928",
+    title: "DAMPAK EKONOMI, URBANISASI & PERTUMBUHAN KOTA, DAMPAK SOSIAL-BUDAYA",
+    subtitle: "Ekonomi, Urbanisasi dan dampak lainnya",
     pemberianTeks:
-      "Kongres Pemuda II di Jakarta menghasilkan Sumpah Pemuda: satu tanah air, satu bangsa, dan satu bahasa Indonesia. Momentum ini menyatukan berbagai organisasi pemuda kedaerahan menjadi satu identitas nasional.",
+      "DAMPAK EKONOMI, URBANISASI & PERTUMBUHAN KOTA, DAMPAK SOSIAL-BUDAYA.",
   },
   {
-    title: "Pendudukan Jepang di Indonesia",
-    subtitle: "Romusha dan janji kemerdekaan",
+    title: "KESEHATAN & HIGIENITAS, MOBILITAS SOSIAL, SENTIMEN RASIAL, DAMPAK POLITIK ",
+    subtitle: "Stratifikasi Sosial.",
     pemberianTeks:
-      "Jepang menduduki Indonesia dari 1942 hingga 1945. Meskipun menjanjikan kemerdekaan melalui BPUPKI dan PPKI, rakyat mengalami penderitaan berat akibat sistem kerja paksa (romusha) dan penyerahan hasil bumi.",
-  },
-  {
-    title: "Proklamasi Kemerdekaan Indonesia",
-    subtitle: "17 Agustus 1945",
-    pemberianTeks:
-      "Setelah peristiwa Rengasdengklok, Soekarno dan Hatta memproklamasikan kemerdekaan Indonesia pada 17 Agustus 1945 di Jalan Pegangsaan Timur 56, Jakarta. Teks proklamasi diketik oleh Sayuti Melik dan dibacakan pukul 10.00 WIB.",
-  },
-  {
-    title: "Perjuangan Mempertahankan Kemerdekaan",
-    subtitle: "Agresi Militer & diplomasi 1945-1949",
-    pemberianTeks:
-      "Belanda melancarkan Agresi Militer I (1947) dan II (1948) untuk merebut kembali Indonesia. Perjuangan dilakukan lewat pertempuran (Surabaya, Ambarawa, Bandung Lautan Api) dan diplomasi (Linggarjati, Renville, Roem-Royen, hingga KMB 1949).",
+      "KESEHATAN & HIGIENITAS, MOBILITAS SOSIAL, SENTIMEN RASIAL, DAMPAK POLITIK.",
   },
 ];
 
