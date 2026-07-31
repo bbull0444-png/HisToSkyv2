@@ -14,9 +14,13 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { MEETINGS } from "@/features/meetings/data";
-import { getOverallProgress } from "@/features/meetings/progress";
+import { fetchProgressMap, getOverallProgressIn } from "@/features/meetings/progress";
 
 export const Route = createFileRoute("/_app/dashboard")({
+  loader: async () => {
+    const progressMap = await fetchProgressMap();
+    return { progressMap };
+  },
   component: DashboardPage,
 });
 
@@ -54,7 +58,8 @@ function StatCard({
 
 function StudentDashboard() {
   const { user } = useAuth();
-  const { completed, total } = getOverallProgress();
+  const { progressMap } = Route.useLoaderData();
+  const { completed, total } = getOverallProgressIn(progressMap);
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
