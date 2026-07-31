@@ -1,12 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { CheckCircle2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MEETINGS } from "@/features/meetings/data";
 import { fetchProgressMap, getMeetingProgressStatusIn } from "@/features/meetings/progress";
-import { fetchMyReflections, saveMyReflection, type Reflection } from "@/features/reflections/reflections";
+import {
+  fetchMyReflections,
+  saveMyReflection,
+  deleteMyReflection,
+  type Reflection,
+} from "@/features/reflections/reflections";
 
 export const Route = createFileRoute("/_app/refleksi-saya")({
   loader: async () => {
@@ -77,18 +83,31 @@ function ReflectionCard({
   existing?: Reflection;
 }) {
   const [content, setContent] = useState(existing?.content ?? "");
+  const [hasSaved, setHasSaved] = useState(!!existing);
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(existing ? Date.now() : null);
-  const dirty = content !== (existing?.content ?? "");
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = async () => {
     if (!content.trim()) return;
     setSaving(true);
     try {
       await saveMyReflection(meetingId, content.trim());
-      setSavedAt(Date.now());
+      setHasSaved(true);
+      toast.success("Refleksi berhasil dikirim");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteMyReflection(meetingId);
+      setContent("");
+      setHasSaved(false);
+      toast.success("Refleksi dihapus, silakan tulis ulang");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -105,18 +124,34 @@ function ReflectionCard({
           onChange={(e) => setContent(e.target.value)}
           placeholder="Apa yang kamu pelajari dari pertemuan ini? Bagian mana yang masih membingungkan?"
           rows={3}
+          disabled={hasSaved}
         />
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
-            {savedAt && !dirty && (
+            {hasSaved && (
               <span className="flex items-center gap-1 text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Tersimpan
+                <CheckCircle2 className="h-3.5 w-3.5" /> Refleksi berhasil dikirim
               </span>
             )}
           </div>
-          <Button size="sm" onClick={handleSave} disabled={saving || !content.trim() || !dirty}>
-            {saving ? "Menyimpan..." : "Simpan Refleksi"}
-          </Button>
+          <div className="flex gap-2">
+            {hasSaved ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {deleting ? "Menghapus..." : "Hapus & Tulis Ulang"}
+              </Button>
+            ) : (
+              <Button size="sm" onClick={handleSave} disabled={saving || !content.trim()}>
+                {saving ? "Menyimpan..." : "Simpan Refleksi"}
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

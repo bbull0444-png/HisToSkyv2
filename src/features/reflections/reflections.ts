@@ -54,6 +54,18 @@ export async function saveMyReflection(meetingId: number, content: string): Prom
   );
 }
 
+/** Hapus refleksi siswa untuk satu pertemuan (supaya bisa nulis ulang dari kosong). */
+export async function deleteMyReflection(meetingId: number): Promise<void> {
+  const studentId = currentStudentId();
+  if (studentId === null) return;
+
+  await supabase
+    .from("reflections")
+    .delete()
+    .eq("student_id", studentId)
+    .eq("meeting_id", meetingId);
+}
+
 /** Guru: ambil semua refleksi siswa, terbaru dulu, lengkap dengan nama siswa. */
 export async function fetchAllReflectionsForTeacher(): Promise<ReflectionWithStudent[]> {
   const { data, error } = await supabase
