@@ -39,6 +39,7 @@ interface NavItem {
 const studentNav: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Materi", url: "/materi", icon: BookOpen },
+  { title: "Refleksi", url: "/refleksi-saya", icon: MessageSquareHeart },
   { title: "Pretest", url: "/pretest", icon: FileQuestion },
   { title: "Posttest", url: "/posttest", icon: FileCheck2 },
   { title: "Nilai", url: "/nilai", icon: LineChart },

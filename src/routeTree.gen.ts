@@ -24,6 +24,7 @@ import { Route as AppPosttestRouteImport } from './routes/_app.posttest'
 import { Route as AppPretestRouteImport } from './routes/_app.pretest'
 import { Route as AppProfilRouteImport } from './routes/_app.profil'
 import { Route as AppRefleksiRouteImport } from './routes/_app.refleksi'
+import { Route as AppRefleksiSayaRouteImport } from './routes/_app.refleksi-saya'
 import { Route as AppRekapNilaiRouteImport } from './routes/_app.rekap-nilai'
 import { Route as AppKelolaMateriIndexRouteImport } from './routes/_app.kelola-materi.index'
 import { Route as AppKelolaMateriIdRouteImport } from './routes/_app.kelola-materi.$id'
@@ -104,6 +105,11 @@ const AppRefleksiRoute = AppRefleksiRouteImport.update({
   path: '/refleksi',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRefleksiSayaRoute = AppRefleksiSayaRouteImport.update({
+  id: '/refleksi-saya',
+  path: '/refleksi-saya',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRekapNilaiRoute = AppRekapNilaiRouteImport.update({
   id: '/rekap-nilai',
   path: '/rekap-nilai',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/pretest': typeof AppPretestRoute
   '/profil': typeof AppProfilRoute
   '/refleksi': typeof AppRefleksiRoute
+  '/refleksi-saya': typeof AppRefleksiSayaRoute
   '/rekap-nilai': typeof AppRekapNilaiRoute
   '/kelola-materi/$id': typeof AppKelolaMateriIdRoute
   '/materi/$id': typeof AppMateriIdRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/pretest': typeof AppPretestRoute
   '/profil': typeof AppProfilRoute
   '/refleksi': typeof AppRefleksiRoute
+  '/refleksi-saya': typeof AppRefleksiSayaRoute
   '/rekap-nilai': typeof AppRekapNilaiRoute
   '/kelola-materi/$id': typeof AppKelolaMateriIdRoute
   '/materi/$id': typeof AppMateriIdRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/_app/pretest': typeof AppPretestRoute
   '/_app/profil': typeof AppProfilRoute
   '/_app/refleksi': typeof AppRefleksiRoute
+  '/_app/refleksi-saya': typeof AppRefleksiSayaRoute
   '/_app/rekap-nilai': typeof AppRekapNilaiRoute
   '/_app/kelola-materi/$id': typeof AppKelolaMateriIdRoute
   '/_app/materi/$id': typeof AppMateriIdRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/pretest'
     | '/profil'
     | '/refleksi'
+    | '/refleksi-saya'
     | '/rekap-nilai'
     | '/kelola-materi/$id'
     | '/materi/$id'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/pretest'
     | '/profil'
     | '/refleksi'
+    | '/refleksi-saya'
     | '/rekap-nilai'
     | '/kelola-materi/$id'
     | '/materi/$id'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/_app/pretest'
     | '/_app/profil'
     | '/_app/refleksi'
+    | '/_app/refleksi-saya'
     | '/_app/rekap-nilai'
     | '/_app/kelola-materi/$id'
     | '/_app/materi/$id'
@@ -375,6 +387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRefleksiRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/refleksi-saya': {
+      id: '/_app/refleksi-saya'
+      path: '/refleksi-saya'
+      fullPath: '/refleksi-saya'
+      preLoaderRoute: typeof AppRefleksiSayaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/rekap-nilai': {
       id: '/_app/rekap-nilai'
       path: '/rekap-nilai'
@@ -426,6 +445,7 @@ interface AppRouteChildren {
   AppPretestRoute: typeof AppPretestRoute
   AppProfilRoute: typeof AppProfilRoute
   AppRefleksiRoute: typeof AppRefleksiRoute
+  AppRefleksiSayaRoute: typeof AppRefleksiSayaRoute
   AppRekapNilaiRoute: typeof AppRekapNilaiRoute
   AppKelolaMateriIdRoute: typeof AppKelolaMateriIdRoute
   AppMateriIdRoute: typeof AppMateriIdRoute
@@ -446,6 +466,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPretestRoute: AppPretestRoute,
   AppProfilRoute: AppProfilRoute,
   AppRefleksiRoute: AppRefleksiRoute,
+  AppRefleksiSayaRoute: AppRefleksiSayaRoute,
   AppRekapNilaiRoute: AppRekapNilaiRoute,
   AppKelolaMateriIdRoute: AppKelolaMateriIdRoute,
   AppMateriIdRoute: AppMateriIdRoute,

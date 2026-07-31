@@ -7,8 +7,9 @@ import { getMeeting } from "@/features/meetings/data";
 import { STAGES, type LearningStage } from "@/features/meetings/types";
 import { fetchMateriKonten, type MateriKontenMap } from "@/lib/materi-konten";
 import {
-  isMeetingCompleted,
-  isMeetingUnlocked,
+  fetchProgressMap,
+  getMeetingProgressStatusIn,
+  isMeetingUnlockedIn,
   markMeetingCompleted,
   markMeetingOpened,
 } from "@/features/meetings/progress";
@@ -20,16 +21,18 @@ export const Route = createFileRoute("/_app/materi/$id")({
     const meeting = getMeeting(meetingId);
     if (!meeting) throw notFound();
 
+    const progressMap = await fetchProgressMap();
+
     // Siswa yang mengakses URL pertemuan terkunci langsung (belum
     // menyelesaikan pertemuan sebelumnya) dikembalikan ke daftar materi.
-    // Guru boleh tetap melihat semua pertemuan untuk keperluan pratinjau,
-    // jadi pengecekan ini hanya relevan untuk alur normal siswa.
-    if (!isMeetingUnlocked(meetingId)) {
+    if (!isMeetingUnlockedIn(progressMap, meetingId)) {
       throw redirect({ to: "/materi" });
     }
 
     const content = await fetchMateriKonten(meetingId);
-    return { meeting, content };
+    const alreadyCompleted = getMeetingProgressStatusIn(progressMap, meetingId) === "completed";
+
+    return { meeting, content, alreadyCompleted };
   },
   component: MateriDetail,
   notFoundComponent: () => (
@@ -43,10 +46,11 @@ export const Route = createFileRoute("/_app/materi/$id")({
 });
 
 function MateriDetail() {
-  const { meeting, content } = Route.useLoaderData();
+  const { meeting, content, alreadyCompleted } = Route.useLoaderData();
   const navigate = useNavigate();
   const [stage, setStage] = useState<LearningStage>(STAGES[0].key);
-  const [completed, setCompleted] = useState(() => isMeetingCompleted(meeting.id));
+  const [completed, setCompleted] = useState(alreadyCompleted);
+  const [saving, setSaving] = useState(false);
   const currentIdx = STAGES.findIndex((s) => s.key === stage);
   const isLastStage = currentIdx === STAGES.length - 1;
   const progress = ((currentIdx + 1) / STAGES.length) * 100;
@@ -62,9 +66,14 @@ function MateriDetail() {
     if (currentIdx > 0) setStage(STAGES[currentIdx - 1].key);
   };
 
-  const handleComplete = () => {
-    markMeetingCompleted(meeting.id);
-    setCompleted(true);
+  const handleComplete = async () => {
+    setSaving(true);
+    try {
+      await markMeetingCompleted(meeting.id);
+      setCompleted(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -131,9 +140,9 @@ function MateriDetail() {
               Pertemuan Selesai
             </Button>
           ) : (
-            <Button onClick={handleComplete} className="gap-1.5">
+            <Button onClick={handleComplete} disabled={saving} className="gap-1.5">
               <PartyPopper className="h-4 w-4" />
-              Tandai Selesai
+              {saving ? "Menyimpan..." : "Tandai Selesai"}
             </Button>
           )
         ) : (

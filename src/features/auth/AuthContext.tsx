@@ -85,14 +85,30 @@ async function authenticate(
     };
   }
 
-  // Student demo: any non-empty credentials
+  // Siswa: verifikasi via RPC `verify_student_login` (SECURITY DEFINER),
+  // supaya password tidak pernah dibaca langsung oleh client dan RLS
+  // tabel `students` bisa ditutup rapat dari akses anon langsung.
   if (!username.trim() || !password.trim()) {
     throw new Error("Username dan password wajib diisi");
   }
+
+  const { data: siswaRows, error: siswaError } = await supabase.rpc("verify_student_login", {
+    p_username: username,
+    p_password: password,
+  });
+
+  if (siswaError) {
+    throw new Error("Gagal memeriksa akun siswa. Coba lagi.");
+  }
+  const siswa = siswaRows?.[0];
+  if (!siswa) {
+    throw new Error("Username atau password siswa salah, atau akun tidak aktif.");
+  }
+
   return {
-    id: `siswa-${username.toLowerCase()}`,
-    username,
-    name: username,
+    id: String(siswa.id),
+    username: siswa.username,
+    name: siswa.full_name,
     role: "siswa",
   };
 }

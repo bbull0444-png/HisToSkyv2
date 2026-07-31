@@ -1,117 +1,112 @@
+import { supabase } from "@/lib/supabase";
 import { getStoredUser } from "@/features/auth/AuthContext";
 import { MEETINGS } from "./data";
 import type { MeetingProgressStatus } from "./types";
 
 /**
- * Progress belajar siswa per pertemuan.
+ * Progress belajar siswa per pertemuan — disimpan di tabel Supabase
+ * `meeting_progress` (bukan localStorage lagi), supaya:
+ * - Tersimpan lintas device (siswa bisa lanjut belajar dari HP atau laptop).
+ * - Bisa dipantau guru dari sisi guru (rekap-nilai, laporan, dst).
  *
- * Disimpan di localStorage, terpisah PER SISWA (key memakai user.id),
- * supaya beberapa akun siswa yang login bergantian di browser yang sama
- * tidak saling menimpa progres.
- *
- * Ini masih penyimpanan sisi klien (selaras dengan auth yang saat ini
- * juga client-side). Kalau backend Supabase sudah dipasang, ganti
- * implementasi di file ini dengan tabel `meeting_progress` — pemanggil
- * (`isMeetingUnlocked`, `markMeetingCompleted`, dst.) tidak perlu berubah.
+ * CATATAN: siswa saat ini login tanpa sesi Supabase Auth sungguhan (lihat
+ * AuthContext.tsx), jadi permintaan ke tabel ini berjalan sebagai role
+ * "anon". RLS mengizinkan anon baca/tulis baris manapun di tabel ini —
+ * keterbatasan bawaan selama siswa belum migrasi ke Supabase Auth asli.
  */
 
-type CompletionMap = Record<number, true>;
+export type MeetingRowStatus = "in-progress" | "completed";
 
-function storageKey(userId: string): string {
-  return `histosky.progress.${userId}`;
+export type ProgressMap = Record<number, MeetingRowStatus>;
+
+function currentStudentId(): number | null {
+  const user = getStoredUser();
+  if (!user || user.role !== "siswa") return null;
+  const id = Number(user.id);
+  return Number.isFinite(id) ? id : null;
 }
 
-function loadCompletionMap(): CompletionMap {
-  const user = getStoredUser();
-  if (!user) return {};
-  try {
-    const raw = localStorage.getItem(storageKey(user.id));
-    return raw ? (JSON.parse(raw) as CompletionMap) : {};
-  } catch {
-    return {};
+/** Ambil semua baris progres siswa yang sedang login, sekali fetch. */
+export async function fetchProgressMap(): Promise<ProgressMap> {
+  const studentId = currentStudentId();
+  if (studentId === null) return {};
+
+  const { data, error } = await supabase
+    .from("meeting_progress")
+    .select("meeting_id, status")
+    .eq("student_id", studentId);
+
+  if (error || !data) return {};
+
+  const map: ProgressMap = {};
+  for (const row of data) {
+    map[row.meeting_id as number] = row.status as MeetingRowStatus;
   }
-}
-
-function saveCompletionMap(map: CompletionMap) {
-  const user = getStoredUser();
-  if (!user) return;
-  localStorage.setItem(storageKey(user.id), JSON.stringify(map));
-}
-
-export function isMeetingCompleted(meetingId: number): boolean {
-  const map = loadCompletionMap();
-  return map[meetingId] === true;
+  return map;
 }
 
 /**
  * Pertemuan 1 selalu terbuka. Pertemuan N terbuka hanya jika
- * pertemuan N-1 sudah completed.
+ * pertemuan N-1 berstatus "completed" di `progressMap`.
  */
-export function isMeetingUnlocked(meetingId: number): boolean {
+export function isMeetingUnlockedIn(progressMap: ProgressMap, meetingId: number): boolean {
   if (meetingId <= 1) return true;
-  return isMeetingCompleted(meetingId - 1);
+  return progressMap[meetingId - 1] === "completed";
 }
 
-/**
- * Tandai pertemuan selesai (dipanggil dari tombol "Tandai Selesai" di
- * tahap terakhir/Penghargaan). Otomatis membuka pertemuan berikutnya.
- */
-export function markMeetingCompleted(meetingId: number) {
-  const map = loadCompletionMap();
-  map[meetingId] = true;
-  saveCompletionMap(map);
-}
-
-/**
- * Status gabungan untuk tampilan kartu di /materi:
- * - locked: pertemuan sebelumnya belum completed
- * - completed: siswa sudah menandai selesai
- * - in-progress: siswa pernah membuka tapi belum menandai selesai
- * - not-started: belum pernah dibuka
- *
- * `lastOpenedStage` (opsional) dipakai untuk membedakan not-started vs
- * in-progress; disimpan ringan lewat key terpisah supaya tidak mengotori
- * completion map.
- */
-export function getMeetingProgressStatus(meetingId: number): MeetingProgressStatus {
-  if (!isMeetingUnlocked(meetingId)) return "locked";
-  if (isMeetingCompleted(meetingId)) return "completed";
-  if (hasOpened(meetingId)) return "in-progress";
+export function getMeetingProgressStatusIn(
+  progressMap: ProgressMap,
+  meetingId: number
+): MeetingProgressStatus {
+  if (!isMeetingUnlockedIn(progressMap, meetingId)) return "locked";
+  const status = progressMap[meetingId];
+  if (status === "completed") return "completed";
+  if (status === "in-progress") return "in-progress";
   return "not-started";
 }
 
-function openedStorageKey(userId: string): string {
-  return `histosky.progress.opened.${userId}`;
+/**
+ * Tandai pertemuan sudah dibuka siswa (dipanggil sekali saat halaman
+ * detail pertemuan mount). Tidak menimpa status "completed" yang sudah
+ * ada — pakai INSERT ... ON CONFLICT DO NOTHING.
+ */
+export async function markMeetingOpened(meetingId: number): Promise<void> {
+  const studentId = currentStudentId();
+  if (studentId === null) return;
+
+  await supabase.from("meeting_progress").upsert(
+    {
+      student_id: studentId,
+      meeting_id: meetingId,
+      status: "in-progress",
+    },
+    { onConflict: "student_id,meeting_id", ignoreDuplicates: true }
+  );
 }
 
-function hasOpened(meetingId: number): boolean {
-  const user = getStoredUser();
-  if (!user) return false;
-  try {
-    const raw = localStorage.getItem(openedStorageKey(user.id));
-    const opened = raw ? (JSON.parse(raw) as Record<number, true>) : {};
-    return opened[meetingId] === true;
-  } catch {
-    return false;
-  }
+/**
+ * Tandai pertemuan selesai (tombol "Tandai Selesai" di tahap terakhir).
+ * Otomatis membuka pertemuan berikutnya karena unlock logic membaca
+ * status "completed" ini.
+ */
+export async function markMeetingCompleted(meetingId: number): Promise<void> {
+  const studentId = currentStudentId();
+  if (studentId === null) return;
+
+  await supabase.from("meeting_progress").upsert(
+    {
+      student_id: studentId,
+      meeting_id: meetingId,
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "student_id,meeting_id" }
+  );
 }
 
-export function markMeetingOpened(meetingId: number) {
-  const user = getStoredUser();
-  if (!user) return;
-  try {
-    const raw = localStorage.getItem(openedStorageKey(user.id));
-    const opened = raw ? (JSON.parse(raw) as Record<number, true>) : {};
-    opened[meetingId] = true;
-    localStorage.setItem(openedStorageKey(user.id), JSON.stringify(opened));
-  } catch {
-    // ignore
-  }
-}
-
-export function getOverallProgress(): { completed: number; total: number } {
+export function getOverallProgressIn(progressMap: ProgressMap): { completed: number; total: number } {
   const total = MEETINGS.length;
-  const map = loadCompletionMap();
-  const completed = Object.keys(map).length;
+  const completed = Object.values(progressMap).filter((s) => s === "completed").length;
   return { completed, total };
 }

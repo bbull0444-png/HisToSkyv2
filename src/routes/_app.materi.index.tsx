@@ -4,13 +4,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MEETINGS } from "@/features/meetings/data";
-import { getMeetingProgressStatus } from "@/features/meetings/progress";
+import { fetchProgressMap, getMeetingProgressStatusIn } from "@/features/meetings/progress";
 
 export const Route = createFileRoute("/_app/materi/")({
+  loader: async () => {
+    const progressMap = await fetchProgressMap();
+    return { progressMap };
+  },
   component: MateriIndex,
 });
 
 function MateriIndex() {
+  const { progressMap } = Route.useLoaderData();
+
   return (
     <div className="space-y-6">
       <div>
@@ -23,7 +29,7 @@ function MateriIndex() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {MEETINGS.map((m) => {
-          const progress = getMeetingProgressStatus(m.id);
+          const progress = getMeetingProgressStatusIn(progressMap, m.id);
           const locked = progress === "locked";
 
           const actionLabel =
