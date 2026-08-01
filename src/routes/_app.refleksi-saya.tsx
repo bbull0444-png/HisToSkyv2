@@ -13,8 +13,10 @@ import {
   deleteMyReflection,
   type Reflection,
 } from "@/features/reflections/reflections";
+import { requireSiswa } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/refleksi-saya")({
+  beforeLoad: requireSiswa,
   loader: async () => {
     const [allMeetings, progressMap, reflectionMap] = await Promise.all([
       fetchMeetings(),
@@ -97,6 +99,8 @@ function ReflectionCard({
       await saveMyReflection(meetingId, content.trim());
       setHasSaved(true);
       toast.success("Refleksi berhasil dikirim");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengirim refleksi");
     } finally {
       setSaving(false);
     }
@@ -109,6 +113,8 @@ function ReflectionCard({
       setContent("");
       setHasSaved(false);
       toast.success("Refleksi dihapus, silakan tulis ulang");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menghapus refleksi");
     } finally {
       setDeleting(false);
     }

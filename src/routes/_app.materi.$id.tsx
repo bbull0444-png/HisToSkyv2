@@ -14,8 +14,10 @@ import {
   markMeetingOpened,
 } from "@/features/meetings/progress";
 import "@/components/editor/editor.css";
+import { requireSiswa } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/materi/$id")({
+  beforeLoad: requireSiswa,
   loader: async ({ params }) => {
     const meetingId = Number(params.id);
     const meeting = await fetchMeetingById(meetingId);

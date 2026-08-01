@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchMeetings } from "@/features/meetings/meetingsApi";
 import { fetchProgressMap, getMeetingProgressStatusIn } from "@/features/meetings/progress";
+import { requireSiswa } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/materi/")({
+  beforeLoad: requireSiswa,
   loader: async () => {
     const [allMeetings, progressMap] = await Promise.all([fetchMeetings(), fetchProgressMap()]);
     const visibleMeetings = allMeetings.filter((m) => m.status === "published");

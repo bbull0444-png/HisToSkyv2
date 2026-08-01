@@ -41,7 +41,9 @@ export async function fetchMyReflections(): Promise<Record<number, Reflection>> 
 /** Simpan/update refleksi siswa untuk satu pertemuan. */
 export async function saveMyReflection(meetingId: number, content: string): Promise<void> {
   const studentId = currentStudentId();
-  if (studentId === null) return;
+  if (studentId === null) {
+    throw new Error("Hanya akun siswa yang bisa mengirim refleksi.");
+  }
 
   await supabase.from("reflections").upsert(
     {
@@ -57,7 +59,9 @@ export async function saveMyReflection(meetingId: number, content: string): Prom
 /** Hapus refleksi siswa untuk satu pertemuan (supaya bisa nulis ulang dari kosong). */
 export async function deleteMyReflection(meetingId: number): Promise<void> {
   const studentId = currentStudentId();
-  if (studentId === null) return;
+  if (studentId === null) {
+    throw new Error("Hanya akun siswa yang bisa menghapus refleksi.");
+  }
 
   await supabase
     .from("reflections")

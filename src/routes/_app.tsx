@@ -33,6 +33,11 @@ const GURU_ONLY_PATHS = [
   "/refleksi",
 ];
 
+// Kebalikannya: path khusus siswa. Tanpa ini, guru yang buka URL siswa
+// (misal /refleksi-saya) bisa tetap berinteraksi dengan halamannya walau
+// tulisannya diam-diam tidak pernah tersimpan — terkesan seperti macet/bug.
+const SISWA_ONLY_PATHS = ["/materi", "/refleksi-saya", "/nilai", "/pretest", "/posttest"];
+
 function Guarded() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -43,11 +48,20 @@ function Guarded() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    if (loading || !user || user.role === "guru") return;
-    const isGuruOnly = GURU_ONLY_PATHS.some(
+    if (loading || !user) return;
+
+    if (user.role !== "guru") {
+      const isGuruOnly = GURU_ONLY_PATHS.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`)
+      );
+      if (isGuruOnly) navigate({ to: "/materi" });
+      return;
+    }
+
+    const isSiswaOnly = SISWA_ONLY_PATHS.some(
       (p) => pathname === p || pathname.startsWith(`${p}/`)
     );
-    if (isGuruOnly) navigate({ to: "/materi" });
+    if (isSiswaOnly) navigate({ to: "/dashboard" });
   }, [loading, user, pathname, navigate]);
 
   if (loading || !user) {

@@ -9,8 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MEETINGS } from "@/features/meetings/data";
+import { requireSiswa } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_app/nilai")({
+  beforeLoad: requireSiswa,
   component: NilaiPage,
 });
 

@@ -37,3 +37,25 @@ export function requireGuru() {
     throw redirect({ to: "/materi" });
   }
 }
+
+/**
+ * Kebalikan dari requireGuru: untuk halaman KHUSUS SISWA (Materi,
+ * Refleksi Saya, Nilai, Pretest, Posttest). Tanpa ini, guru yang membuka
+ * URL siswa langsung akan tetap bisa "mengetik" di halaman tersebut
+ * walau tulisannya sebenarnya tidak pernah tersimpan (fungsi Supabase di
+ * baliknya menolak akun non-siswa secara diam-diam) — membingungkan dan
+ * terkesan seperti macet/nge-bug.
+ */
+export function requireSiswa() {
+  if (typeof window === "undefined") return;
+
+  const user = getStoredUser();
+
+  if (!user) {
+    throw redirect({ to: "/login" });
+  }
+
+  if (user.role !== "siswa") {
+    throw redirect({ to: "/dashboard" });
+  }
+}
