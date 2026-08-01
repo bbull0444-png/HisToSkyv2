@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireGuru } from "@/lib/route-guards";
-import { fetchAllReflectionsForTeacher } from "@/features/reflections/reflections";
+import {
+  fetchAllReflectionsForTeacher,
+  type ReflectionWithStudent,
+} from "@/features/reflections/reflections";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/_app/refleksi")({
   beforeLoad: requireGuru,
@@ -25,13 +30,38 @@ function formatRelative(dateStr: string): string {
 }
 
 function RefleksiPage() {
-  const { reflections } = Route.useLoaderData();
+  const { reflections: initialReflections } = Route.useLoaderData();
+  const [reflections, setReflections] = useState<ReflectionWithStudent[]>(initialReflections);
+
+  useEffect(() => {
+    // Live-update: begitu siswa manapun menulis/hapus refleksi, halaman
+    // ini otomatis refresh tanpa guru perlu pindah/reload halaman.
+    // Payload realtime cuma kasih baris mentah (tanpa nama siswa hasil
+    // join), jadi cara paling aman & sederhana adalah fetch ulang daftar
+    // lengkap tiap kali ada perubahan — bukan nge-patch satu baris manual.
+    const channel = supabase
+      .channel("reflections-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reflections" },
+        () => {
+          fetchAllReflectionsForTeacher().then(setReflections);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Refleksi Siswa</h1>
-        <p className="text-sm text-muted-foreground">Kumpulan refleksi dari siswa per pertemuan.</p>
+        <p className="text-sm text-muted-foreground">
+          Kumpulan refleksi dari siswa per pertemuan — diperbarui otomatis secara live.
+        </p>
       </div>
       {reflections.length === 0 ? (
         <p className="text-sm text-muted-foreground">Belum ada refleksi yang dikirim siswa.</p>

@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -16,13 +16,39 @@ function AppLayout() {
   );
 }
 
+// Path yang hanya boleh diakses guru. `requireGuru` (beforeLoad) sudah
+// menegakkan ini di client, tapi dilewati saat SSR karena localStorage
+// tidak ada di server (lihat catatan di route-guards.ts). Cek client-side
+// di sini jadi lapisan kedua yang jalan setelah hydration, khusus untuk
+// kasus siswa hard-refresh langsung ke URL guru.
+const GURU_ONLY_PATHS = [
+  "/kelola-materi",
+  "/kelola-kelompok",
+  "/kelola-quiz",
+  "/kelola-lkpd",
+  "/rekap-nilai",
+  "/laporan",
+  "/data-siswa",
+  "/pengaturan",
+  "/refleksi",
+];
+
 function Guarded() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    if (loading || !user || user.role === "guru") return;
+    const isGuruOnly = GURU_ONLY_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`)
+    );
+    if (isGuruOnly) navigate({ to: "/materi" });
+  }, [loading, user, pathname, navigate]);
 
   if (loading || !user) {
     return (

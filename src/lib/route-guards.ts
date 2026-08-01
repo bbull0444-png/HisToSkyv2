@@ -17,6 +17,16 @@ import { getStoredUser } from "@/features/auth/AuthContext";
  *   });
  */
 export function requireGuru() {
+  // Guard ini baca localStorage, yang cuma ada di browser. Halaman ini
+  // sempat dirender duluan di server (SSR TanStack Start) sebelum sampai
+  // ke browser — kalau kita tetap paksa cek localStorage di server, hasilnya
+  // selalu "null" (localStorage tidak ada di server), sehingga guru asli
+  // yang hard-refresh salah dikira belum login dan dilempar ke /login.
+  // Jadi guard ini hanya benar-benar menegakkan aturan di sisi client;
+  // proteksi data sesungguhnya tetap dijaga oleh RLS Supabase (query dari
+  // server tanpa sesi Supabase Auth guru akan ditolak database).
+  if (typeof window === "undefined") return;
+
   const user = getStoredUser();
 
   if (!user) {
