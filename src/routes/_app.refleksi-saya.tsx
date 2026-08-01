@@ -5,7 +5,7 @@ import { CheckCircle2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MEETINGS } from "@/features/meetings/data";
+import { fetchMeetings } from "@/features/meetings/meetingsApi";
 import { fetchProgressMap, getMeetingProgressStatusIn } from "@/features/meetings/progress";
 import {
   fetchMyReflections,
@@ -16,22 +16,25 @@ import {
 
 export const Route = createFileRoute("/_app/refleksi-saya")({
   loader: async () => {
-    const [progressMap, reflectionMap] = await Promise.all([
+    const [allMeetings, progressMap, reflectionMap] = await Promise.all([
+      fetchMeetings(),
       fetchProgressMap(),
       fetchMyReflections(),
     ]);
-    return { progressMap, reflectionMap };
+    const publishedMeetings = allMeetings.filter((m) => m.status === "published");
+    const orderedIds = publishedMeetings.map((m) => m.id);
+    return { publishedMeetings, orderedIds, progressMap, reflectionMap };
   },
   component: RefleksiSayaPage,
 });
 
 function RefleksiSayaPage() {
-  const { progressMap, reflectionMap } = Route.useLoaderData();
+  const { publishedMeetings, orderedIds, progressMap, reflectionMap } = Route.useLoaderData();
 
   // Refleksi masuk akal ditulis untuk pertemuan yang sudah mulai dipelajari
   // (tidak terkunci) — bukan yang belum dibuka sama sekali.
-  const availableMeetings = MEETINGS.filter(
-    (m) => getMeetingProgressStatusIn(progressMap, m.id) !== "locked"
+  const availableMeetings = publishedMeetings.filter(
+    (m) => getMeetingProgressStatusIn(orderedIds, progressMap, m.id) !== "locked"
   );
 
   if (availableMeetings.length === 0) {

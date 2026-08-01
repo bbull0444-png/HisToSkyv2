@@ -12,17 +12,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
-import { MEETINGS } from "@/features/meetings/data";
+import { fetchMeetings } from "@/features/meetings/meetingsApi";
 import { fetchProgressMap, getOverallProgressIn } from "@/features/meetings/progress";
 import { fetchTeacherDashboardStats } from "@/features/dashboard/teacherStats";
 
 export const Route = createFileRoute("/_app/dashboard")({
   loader: async () => {
-    const [progressMap, teacherStats] = await Promise.all([
+    const [progressMap, teacherStats, publishedMeetingsCount] = await Promise.all([
       fetchProgressMap(),
       fetchTeacherDashboardStats(),
+      fetchMeetings().then((ms) => ms.filter((m) => m.status === "published").length),
     ]);
-    return { progressMap, teacherStats };
+    return { progressMap, teacherStats, publishedMeetingsCount };
   },
   component: DashboardPage,
 });
@@ -61,8 +62,8 @@ function StatCard({
 
 function StudentDashboard() {
   const { user } = useAuth();
-  const { progressMap } = Route.useLoaderData();
-  const { completed, total } = getOverallProgressIn(progressMap);
+  const { progressMap, publishedMeetingsCount } = Route.useLoaderData();
+  const { completed, total } = getOverallProgressIn(progressMap, publishedMeetingsCount);
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
@@ -106,9 +107,7 @@ function StudentDashboard() {
 
 function TeacherDashboard() {
   const { teacherStats } = Route.useLoaderData();
-  const published = MEETINGS.filter((m) =>
-    teacherStats.publishStatusMap[m.id] === "published"
-  ).length;
+  const published = teacherStats.meetings.filter((m) => m.status === "published").length;
 
   return (
     <div className="space-y-6">
@@ -124,7 +123,7 @@ function TeacherDashboard() {
         <StatCard title="Total Siswa" value={String(teacherStats.totalSiswa)} icon={Users} />
         <StatCard
           title="Materi Publish"
-          value={`${published}/${MEETINGS.length}`}
+          value={`${published}/${teacherStats.meetings.length}`}
           icon={FolderKanban}
         />
         <StatCard title="Rata-rata Nilai" value="-" icon={Trophy} hint="Belum ada data" />

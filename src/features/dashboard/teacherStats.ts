@@ -1,18 +1,18 @@
 import { supabase } from "@/lib/supabase";
-import { fetchPublishStatusMap, type PublishStatusMap } from "@/features/meetings/publishStatus";
+import { fetchMeetings, type MeetingSummary } from "@/features/meetings/meetingsApi";
 import { fetchAllReflectionsForTeacher, type ReflectionWithStudent } from "@/features/reflections/reflections";
 
 export interface TeacherDashboardStats {
   totalSiswa: number;
-  publishStatusMap: PublishStatusMap;
+  meetings: MeetingSummary[];
   refleksiBaru24Jam: number;
   aktivitasTerbaru: ReflectionWithStudent[];
 }
 
 export async function fetchTeacherDashboardStats(): Promise<TeacherDashboardStats> {
-  const [{ count: totalSiswa }, publishStatusMap, allReflections] = await Promise.all([
+  const [{ count: totalSiswa }, meetings, allReflections] = await Promise.all([
     supabase.from("students").select("*", { count: "exact", head: true }),
-    fetchPublishStatusMap(),
+    fetchMeetings(),
     fetchAllReflectionsForTeacher(),
   ]);
 
@@ -23,7 +23,7 @@ export async function fetchTeacherDashboardStats(): Promise<TeacherDashboardStat
 
   return {
     totalSiswa: totalSiswa ?? 0,
-    publishStatusMap,
+    meetings,
     refleksiBaru24Jam,
     aktivitasTerbaru: allReflections.slice(0, 3),
   };

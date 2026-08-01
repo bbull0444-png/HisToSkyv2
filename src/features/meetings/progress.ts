@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import { getStoredUser } from "@/features/auth/AuthContext";
-import { MEETINGS } from "./data";
 import type { MeetingProgressStatus } from "./types";
 
 /**
@@ -46,19 +45,28 @@ export async function fetchProgressMap(): Promise<ProgressMap> {
 }
 
 /**
- * Pertemuan 1 selalu terbuka. Pertemuan N terbuka hanya jika
- * pertemuan N-1 berstatus "completed" di `progressMap`.
+ * Pertemuan pertama (dalam urutan `orderedMeetingIds`) selalu terbuka.
+ * Pertemuan berikutnya terbuka hanya jika pertemuan SEBELUMNYA dalam
+ * urutan itu sudah "completed" — dicek lewat urutan, bukan `id - 1`,
+ * supaya tetap benar walau ada pertemuan di tengah yang dihapus guru.
  */
-export function isMeetingUnlockedIn(progressMap: ProgressMap, meetingId: number): boolean {
-  if (meetingId <= 1) return true;
-  return progressMap[meetingId - 1] === "completed";
+export function isMeetingUnlockedIn(
+  orderedMeetingIds: number[],
+  progressMap: ProgressMap,
+  meetingId: number
+): boolean {
+  const idx = orderedMeetingIds.indexOf(meetingId);
+  if (idx <= 0) return true;
+  const prevId = orderedMeetingIds[idx - 1];
+  return progressMap[prevId] === "completed";
 }
 
 export function getMeetingProgressStatusIn(
+  orderedMeetingIds: number[],
   progressMap: ProgressMap,
   meetingId: number
 ): MeetingProgressStatus {
-  if (!isMeetingUnlockedIn(progressMap, meetingId)) return "locked";
+  if (!isMeetingUnlockedIn(orderedMeetingIds, progressMap, meetingId)) return "locked";
   const status = progressMap[meetingId];
   if (status === "completed") return "completed";
   if (status === "in-progress") return "in-progress";
@@ -105,8 +113,10 @@ export async function markMeetingCompleted(meetingId: number): Promise<void> {
   );
 }
 
-export function getOverallProgressIn(progressMap: ProgressMap): { completed: number; total: number } {
-  const total = MEETINGS.length;
+export function getOverallProgressIn(
+  progressMap: ProgressMap,
+  total: number
+): { completed: number; total: number } {
   const completed = Object.values(progressMap).filter((s) => s === "completed").length;
   return { completed, total };
 }

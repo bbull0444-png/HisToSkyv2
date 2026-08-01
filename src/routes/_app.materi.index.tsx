@@ -3,24 +3,21 @@ import { BookOpen, ArrowRight, Lock, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MEETINGS } from "@/features/meetings/data";
+import { fetchMeetings } from "@/features/meetings/meetingsApi";
 import { fetchProgressMap, getMeetingProgressStatusIn } from "@/features/meetings/progress";
-import { fetchPublishStatusMap, isMeetingPublished } from "@/features/meetings/publishStatus";
 
 export const Route = createFileRoute("/_app/materi/")({
   loader: async () => {
-    const [progressMap, publishMap] = await Promise.all([
-      fetchProgressMap(),
-      fetchPublishStatusMap(),
-    ]);
-    return { progressMap, publishMap };
+    const [allMeetings, progressMap] = await Promise.all([fetchMeetings(), fetchProgressMap()]);
+    const visibleMeetings = allMeetings.filter((m) => m.status === "published");
+    const orderedIds = visibleMeetings.map((m) => m.id);
+    return { visibleMeetings, orderedIds, progressMap };
   },
   component: MateriIndex,
 });
 
 function MateriIndex() {
-  const { progressMap, publishMap } = Route.useLoaderData();
-  const visibleMeetings = MEETINGS.filter((m) => isMeetingPublished(publishMap, m.id));
+  const { visibleMeetings, orderedIds, progressMap } = Route.useLoaderData();
 
   return (
     <div className="space-y-6">
@@ -34,7 +31,7 @@ function MateriIndex() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {visibleMeetings.map((m) => {
-          const progress = getMeetingProgressStatusIn(progressMap, m.id);
+          const progress = getMeetingProgressStatusIn(orderedIds, progressMap, m.id);
           const locked = progress === "locked";
 
           const actionLabel =
@@ -60,7 +57,7 @@ function MateriIndex() {
                   </div>
                   <Badge>Tersedia</Badge>
                 </div>
-                <div className="text-xs font-medium text-muted-foreground">Pertemuan {m.id}</div>
+                <div className="text-xs font-medium text-muted-foreground">Pertemuan {m.order}</div>
                 <div className="mt-1 line-clamp-2 text-base font-semibold">{m.title}</div>
                 <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{m.subtitle}</div>
                 <div className="mt-auto pt-4">

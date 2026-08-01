@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, PartyPopper } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMeeting } from "@/features/meetings/data";
+import { fetchMeetingById, fetchMeetings } from "@/features/meetings/meetingsApi";
 import { STAGES, type LearningStage } from "@/features/meetings/types";
 import { fetchMateriKonten, type MateriKontenMap } from "@/lib/materi-konten";
 import {
@@ -13,34 +13,34 @@ import {
   markMeetingCompleted,
   markMeetingOpened,
 } from "@/features/meetings/progress";
-import { fetchPublishStatusMap, isMeetingPublished } from "@/features/meetings/publishStatus";
 import "@/components/editor/editor.css";
 
 export const Route = createFileRoute("/_app/materi/$id")({
   loader: async ({ params }) => {
     const meetingId = Number(params.id);
-    const meeting = getMeeting(meetingId);
+    const meeting = await fetchMeetingById(meetingId);
     if (!meeting) throw notFound();
 
-    const [progressMap, publishMap] = await Promise.all([
-      fetchProgressMap(),
-      fetchPublishStatusMap(),
-    ]);
+    const [allMeetings, progressMap] = await Promise.all([fetchMeetings(), fetchProgressMap()]);
+    const orderedIds = allMeetings
+      .filter((m) => m.status === "published")
+      .map((m) => m.id);
 
     // Guru menandai pertemuan ini draft -> siswa tidak boleh akses sama
     // sekali, terlepas dari status progres pertemuan sebelumnya.
-    if (!isMeetingPublished(publishMap, meetingId)) {
+    if (meeting.status !== "published") {
       throw redirect({ to: "/materi" });
     }
 
     // Siswa yang mengakses URL pertemuan terkunci langsung (belum
     // menyelesaikan pertemuan sebelumnya) dikembalikan ke daftar materi.
-    if (!isMeetingUnlockedIn(progressMap, meetingId)) {
+    if (!isMeetingUnlockedIn(orderedIds, progressMap, meetingId)) {
       throw redirect({ to: "/materi" });
     }
 
     const content = await fetchMateriKonten(meetingId);
-    const alreadyCompleted = getMeetingProgressStatusIn(progressMap, meetingId) === "completed";
+    const alreadyCompleted =
+      getMeetingProgressStatusIn(orderedIds, progressMap, meetingId) === "completed";
 
     return { meeting, content, alreadyCompleted };
   },
@@ -96,7 +96,7 @@ function MateriDetail() {
             </Link>
           </Button>
           <div className="text-xs font-medium text-muted-foreground">
-            Pertemuan {meeting.id}
+            Pertemuan {meeting.order}
           </div>
           <h1 className="text-2xl font-bold">{meeting.title}</h1>
           <p className="text-sm text-muted-foreground">{meeting.subtitle}</p>
@@ -162,7 +162,7 @@ function MateriDetail() {
 
       {isLastStage && completed && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-          Pertemuan {meeting.id} sudah kamu selesaikan. Pertemuan berikutnya sekarang terbuka.{" "}
+          Pertemuan {meeting.order} sudah kamu selesaikan. Pertemuan berikutnya sekarang terbuka.{" "}
           <button
             className="font-medium text-primary underline underline-offset-2"
             onClick={() => navigate({ to: "/materi" })}
