@@ -5,17 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MEETINGS } from "@/features/meetings/data";
 import { fetchProgressMap, getMeetingProgressStatusIn } from "@/features/meetings/progress";
+import { fetchPublishStatusMap, isMeetingPublished } from "@/features/meetings/publishStatus";
 
 export const Route = createFileRoute("/_app/materi/")({
   loader: async () => {
-    const progressMap = await fetchProgressMap();
-    return { progressMap };
+    const [progressMap, publishMap] = await Promise.all([
+      fetchProgressMap(),
+      fetchPublishStatusMap(),
+    ]);
+    return { progressMap, publishMap };
   },
   component: MateriIndex,
 });
 
 function MateriIndex() {
-  const { progressMap } = Route.useLoaderData();
+  const { progressMap, publishMap } = Route.useLoaderData();
+  const visibleMeetings = MEETINGS.filter((m) => isMeetingPublished(publishMap, m.id));
 
   return (
     <div className="space-y-6">
@@ -28,7 +33,7 @@ function MateriIndex() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {MEETINGS.map((m) => {
+        {visibleMeetings.map((m) => {
           const progress = getMeetingProgressStatusIn(progressMap, m.id);
           const locked = progress === "locked";
 
@@ -53,9 +58,7 @@ function MateriIndex() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     {locked ? <Lock className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
                   </div>
-                  <Badge variant={m.status === "published" ? "default" : "secondary"}>
-                    {m.status === "published" ? "Tersedia" : "Segera"}
-                  </Badge>
+                  <Badge>Tersedia</Badge>
                 </div>
                 <div className="text-xs font-medium text-muted-foreground">Pertemuan {m.id}</div>
                 <div className="mt-1 line-clamp-2 text-base font-semibold">{m.title}</div>
@@ -86,6 +89,12 @@ function MateriIndex() {
           );
         })}
       </div>
+
+      {visibleMeetings.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Belum ada pertemuan yang dipublish guru.
+        </p>
+      )}
     </div>
   );
 }

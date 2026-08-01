@@ -5,7 +5,6 @@ import {
   Users,
   FileQuestion,
   Trophy,
-  ClipboardList,
   MessageSquareHeart,
   FolderKanban,
 } from "lucide-react";
@@ -15,11 +14,15 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthContext";
 import { MEETINGS } from "@/features/meetings/data";
 import { fetchProgressMap, getOverallProgressIn } from "@/features/meetings/progress";
+import { fetchTeacherDashboardStats } from "@/features/dashboard/teacherStats";
 
 export const Route = createFileRoute("/_app/dashboard")({
   loader: async () => {
-    const progressMap = await fetchProgressMap();
-    return { progressMap };
+    const [progressMap, teacherStats] = await Promise.all([
+      fetchProgressMap(),
+      fetchTeacherDashboardStats(),
+    ]);
+    return { progressMap, teacherStats };
   },
   component: DashboardPage,
 });
@@ -102,7 +105,11 @@ function StudentDashboard() {
 }
 
 function TeacherDashboard() {
-  const published = MEETINGS.filter((m) => m.status === "published").length;
+  const { teacherStats } = Route.useLoaderData();
+  const published = MEETINGS.filter((m) =>
+    teacherStats.publishStatusMap[m.id] === "published"
+  ).length;
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl bg-gradient-to-r from-primary to-primary/70 p-6 text-primary-foreground shadow-lg">
@@ -114,14 +121,19 @@ function TeacherDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard title="Total Siswa" value="41" icon={Users} />
+        <StatCard title="Total Siswa" value={String(teacherStats.totalSiswa)} icon={Users} />
         <StatCard
           title="Materi Publish"
           value={`${published}/${MEETINGS.length}`}
           icon={FolderKanban}
         />
-        <StatCard title="Rata-rata Nilai" value="82.4" icon={Trophy} />
-        <StatCard title="Refleksi Baru" value="7" icon={MessageSquareHeart} />
+        <StatCard title="Rata-rata Nilai" value="-" icon={Trophy} hint="Belum ada data" />
+        <StatCard
+          title="Refleksi Baru"
+          value={String(teacherStats.refleksiBaru24Jam)}
+          icon={MessageSquareHeart}
+          hint="24 jam terakhir"
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -149,18 +161,18 @@ function TeacherDashboard() {
             <CardTitle>Aktivitas Terbaru</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center gap-3">
-              <ClipboardList className="h-4 w-4 text-primary" />
-              <span>15 siswa menyelesaikan LKPD Pertemuan 3</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <FileQuestion className="h-4 w-4 text-primary" />
-              <span>Quiz Pertemuan 2 telah dinilai otomatis</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <MessageSquareHeart className="h-4 w-4 text-primary" />
-              <span>7 refleksi baru menunggu ditinjau</span>
-            </div>
+            {teacherStats.aktivitasTerbaru.length === 0 ? (
+              <p className="text-muted-foreground">Belum ada aktivitas.</p>
+            ) : (
+              teacherStats.aktivitasTerbaru.map((r) => (
+                <div key={r.id} className="flex items-center gap-3">
+                  <MessageSquareHeart className="h-4 w-4 flex-shrink-0 text-primary" />
+                  <span>
+                    <strong>{r.student_name}</strong> mengirim refleksi Pertemuan {r.meeting_id}
+                  </span>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

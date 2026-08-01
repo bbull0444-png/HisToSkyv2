@@ -6,35 +6,50 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MEETINGS } from "@/features/meetings/data";
 import { requireGuru } from "@/lib/route-guards";
+import {
+  fetchPublishStatusMap,
+  setMeetingPublishStatus,
+  type PublishStatusMap,
+} from "@/features/meetings/publishStatus";
 
 // PENTING: path diakhiri "/" -> ini yang membuatnya jadi INDEX route
 // (sibling dari $id, bukan parent-nya)
 export const Route = createFileRoute("/_app/kelola-materi/")({
   beforeLoad: requireGuru,
+  loader: async () => {
+    const statusMap = await fetchPublishStatusMap();
+    return { statusMap };
+  },
   component: KelolaMateri,
 });
 
 function KelolaMateri() {
-  const [statuses, setStatuses] = useState(
-    () =>
-      Object.fromEntries(MEETINGS.map((m) => [m.id, m.status])) as Record<
-        number,
-        "published" | "draft"
-      >,
-  );
+  const { statusMap: initialStatusMap } = Route.useLoaderData();
+  const [statuses, setStatuses] = useState<PublishStatusMap>(initialStatusMap);
+  const [saving, setSaving] = useState<number | null>(null);
 
-  const toggle = (id: number) =>
-    setStatuses((prev) => ({
-      ...prev,
-      [id]: prev[id] === "published" ? "draft" : "published",
-    }));
+  const toggle = async (id: number) => {
+    const next = statuses[id] === "published" ? "draft" : "published";
+    setSaving(id);
+    // Optimistic update biar UI langsung terasa responsif
+    setStatuses((prev) => ({ ...prev, [id]: next }));
+    try {
+      await setMeetingPublishStatus(id, next);
+    } catch {
+      // Gagal simpan -> balikin ke status semula
+      setStatuses((prev) => ({ ...prev, [id]: statuses[id] }));
+    } finally {
+      setSaving(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Kelola Materi</h1>
         <p className="text-sm text-muted-foreground">
-          Atur ketersediaan 8 pertemuan pembelajaran CIRC.
+          Atur ketersediaan pertemuan pembelajaran CIRC. Pertemuan berstatus "Draft" tidak akan
+          muncul/bisa diakses siswa.
         </p>
       </div>
 
@@ -71,8 +86,13 @@ function KelolaMateri() {
                     size="sm"
                     variant={status === "published" ? "secondary" : "default"}
                     onClick={() => toggle(m.id)}
+                    disabled={saving === m.id}
                   >
-                    {status === "published" ? "Jadikan Draft" : "Publish"}
+                    {saving === m.id
+                      ? "Menyimpan..."
+                      : status === "published"
+                        ? "Jadikan Draft"
+                        : "Publish"}
                   </Button>
                 </div>
               </CardContent>

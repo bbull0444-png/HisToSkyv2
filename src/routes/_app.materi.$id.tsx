@@ -13,6 +13,7 @@ import {
   markMeetingCompleted,
   markMeetingOpened,
 } from "@/features/meetings/progress";
+import { fetchPublishStatusMap, isMeetingPublished } from "@/features/meetings/publishStatus";
 import "@/components/editor/editor.css";
 
 export const Route = createFileRoute("/_app/materi/$id")({
@@ -21,7 +22,16 @@ export const Route = createFileRoute("/_app/materi/$id")({
     const meeting = getMeeting(meetingId);
     if (!meeting) throw notFound();
 
-    const progressMap = await fetchProgressMap();
+    const [progressMap, publishMap] = await Promise.all([
+      fetchProgressMap(),
+      fetchPublishStatusMap(),
+    ]);
+
+    // Guru menandai pertemuan ini draft -> siswa tidak boleh akses sama
+    // sekali, terlepas dari status progres pertemuan sebelumnya.
+    if (!isMeetingPublished(publishMap, meetingId)) {
+      throw redirect({ to: "/materi" });
+    }
 
     // Siswa yang mengakses URL pertemuan terkunci langsung (belum
     // menyelesaikan pertemuan sebelumnya) dikembalikan ke daftar materi.
