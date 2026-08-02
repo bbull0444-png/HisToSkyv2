@@ -21,6 +21,7 @@ export const Route = createFileRoute("/_app/posttest-siklus2")({
         testType="posttest_siklus_2"
         questions={questions}
         existingAttempt={attempt}
+        unlockAfterMeetingOrder={2}
       />
     );
   },
