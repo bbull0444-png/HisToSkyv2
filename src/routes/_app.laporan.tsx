@@ -7,6 +7,12 @@ import { supabase } from "@/lib/supabase";
 export const Route = createFileRoute("/_app/laporan")({
   beforeLoad: requireGuru,
   loader: async () => {
+    // Pastikan sesi Supabase Auth guru sudah selesai di-restore dari
+    // localStorage sebelum query jalan. Tanpa ini, pas hard refresh, loader
+    // ini bisa nembak query duluan sebelum token guru terpasang di client,
+    // jadi RLS nganggep request-nya anon dan hasilnya kosong.
+    await supabase.auth.getSession();
+
     const [rows, { count: totalSiswa }, { data: reflectionRows }] = await Promise.all([
       fetchNilaiRekap(),
       supabase.from("students").select("*", { count: "exact", head: true }).eq("active", true),
