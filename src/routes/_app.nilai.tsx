@@ -1,67 +1,94 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Trophy, TrendingUp, FileQuestion } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { MEETINGS } from "@/features/meetings/data";
 import { requireSiswa } from "@/lib/route-guards";
+import { fetchMyAttempt } from "@/features/tests/testsApi";
 
 export const Route = createFileRoute("/_app/nilai")({
   beforeLoad: requireSiswa,
+  loader: async () => {
+    const [pretest, posttest] = await Promise.all([
+      fetchMyAttempt("pretest"),
+      fetchMyAttempt("posttest"),
+    ]);
+    return { pretest, posttest };
+  },
   component: NilaiPage,
 });
 
-const dummyScores = MEETINGS.map((m, i) => ({
-  meeting: m,
-  lkpd: 70 + ((i * 7) % 25),
-  quiz: 60 + ((i * 11) % 35),
-}));
-
 function NilaiPage() {
+  const { pretest, posttest } = Route.useLoaderData();
+  const peningkatan =
+    pretest && posttest ? posttest.score - pretest.score : null;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Nilai Saya</h1>
-        <p className="text-sm text-muted-foreground">
-          Rekap nilai LKPD dan Quiz dari setiap pertemuan.
-        </p>
+        <p className="text-sm text-muted-foreground">Hasil pretest dan posttest kamu.</p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Rekap Nilai</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pertemuan</TableHead>
-                <TableHead>Judul</TableHead>
-                <TableHead className="text-right">LKPD</TableHead>
-                <TableHead className="text-right">Quiz</TableHead>
-                <TableHead className="text-right">Rata-rata</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {dummyScores.map(({ meeting, lkpd, quiz }) => (
-                <TableRow key={meeting.id}>
-                  <TableCell>#{meeting.id}</TableCell>
-                  <TableCell>{meeting.title}</TableCell>
-                  <TableCell className="text-right">{lkpd}</TableCell>
-                  <TableCell className="text-right">{quiz}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {Math.round((lkpd + quiz) / 2)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <FileQuestion className="h-4 w-4" /> Pretest
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pretest ? (
+              <>
+                <p className="text-3xl font-bold">{pretest.score}</p>
+                <p className="text-xs text-muted-foreground">
+                  Benar {pretest.correct_count} dari {pretest.total_questions}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Belum dikerjakan</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Trophy className="h-4 w-4" /> Posttest
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {posttest ? (
+              <>
+                <p className="text-3xl font-bold">{posttest.score}</p>
+                <p className="text-xs text-muted-foreground">
+                  Benar {posttest.correct_count} dari {posttest.total_questions}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Belum dikerjakan</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <TrendingUp className="h-4 w-4" /> Peningkatan
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {peningkatan !== null ? (
+              <p className={`text-3xl font-bold ${peningkatan >= 0 ? "text-primary" : "text-destructive"}`}>
+                {peningkatan >= 0 ? "+" : ""}
+                {peningkatan}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Kerjakan pretest & posttest dulu
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

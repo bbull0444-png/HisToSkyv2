@@ -81,8 +81,8 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <GraduationCap className="h-5 w-5" />
-          </div>
+  <GraduationCap className="h-5 w-5" />
+</div>
           <div className="flex flex-col leading-tight">
             <span className="text-base font-bold tracking-tight">HisToSky</span>
             <span className="text-xs text-muted-foreground">

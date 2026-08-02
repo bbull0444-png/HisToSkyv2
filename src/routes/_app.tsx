@@ -26,6 +26,8 @@ const GURU_ONLY_PATHS = [
   "/kelola-kelompok",
   "/kelola-quiz",
   "/kelola-lkpd",
+  "/kelola-pretest",
+  "/kelola-posttest",
   "/rekap-nilai",
   "/laporan",
   "/data-siswa",
