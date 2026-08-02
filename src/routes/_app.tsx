@@ -27,7 +27,9 @@ const GURU_ONLY_PATHS = [
   "/kelola-quiz",
   "/kelola-lkpd",
   "/kelola-pretest",
-  "/kelola-posttest",
+  "/kelola-posttest-siklus1",
+  "/kelola-posttest-siklus2",
+  "/kelola-posttest-siklus3",
   "/rekap-nilai",
   "/laporan",
   "/data-siswa",
@@ -38,7 +40,15 @@ const GURU_ONLY_PATHS = [
 // Kebalikannya: path khusus siswa. Tanpa ini, guru yang buka URL siswa
 // (misal /refleksi-saya) bisa tetap berinteraksi dengan halamannya walau
 // tulisannya diam-diam tidak pernah tersimpan — terkesan seperti macet/bug.
-const SISWA_ONLY_PATHS = ["/materi", "/refleksi-saya", "/nilai", "/pretest", "/posttest"];
+const SISWA_ONLY_PATHS = [
+  "/materi",
+  "/refleksi-saya",
+  "/nilai",
+  "/pretest",
+  "/posttest-siklus1",
+  "/posttest-siklus2",
+  "/posttest-siklus3",
+];
 
 function Guarded() {
   const { user, loading } = useAuth();

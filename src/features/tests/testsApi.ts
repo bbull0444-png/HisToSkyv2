@@ -1,7 +1,14 @@
 import { supabase } from "@/lib/supabase";
 import { getStoredUser } from "@/features/auth/AuthContext";
 
-export type TestType = "pretest" | "posttest";
+export type TestType = "pretest" | "posttest_siklus_1" | "posttest_siklus_2" | "posttest_siklus_3";
+
+export const TEST_TYPES: { type: TestType; label: string }[] = [
+  { type: "pretest", label: "Pretest" },
+  { type: "posttest_siklus_1", label: "Posttest Siklus 1" },
+  { type: "posttest_siklus_2", label: "Posttest Siklus 2" },
+  { type: "posttest_siklus_3", label: "Posttest Siklus 3" },
+];
 
 export interface TestQuestion {
   id: number;
@@ -189,27 +196,32 @@ export interface StudentNilaiSummary {
   student_id: number;
   student_name: string;
   class_name: string | null;
-  pretest_score: number | null;
-  posttest_score: number | null;
+  scores: Record<TestType, number | null>;
 }
 
-/** Gabungan roster siswa asli + skor pretest/posttest, buat Rekap Nilai & Laporan. */
+/** Gabungan roster siswa asli + skor tiap jenis test, buat Rekap Nilai & Laporan. */
 export async function fetchNilaiRekap(): Promise<StudentNilaiSummary[]> {
-  const [studentsRes, pretestAttempts, posttestAttempts] = await Promise.all([
+  const [studentsRes, ...attemptsByType] = await Promise.all([
     supabase.from("students").select("id, full_name, class_name").eq("active", true),
-    fetchAllAttempts("pretest"),
-    fetchAllAttempts("posttest"),
+    ...TEST_TYPES.map((t) => fetchAllAttempts(t.type)),
   ]);
 
   const students = studentsRes.data ?? [];
-  const pretestByStudent = new Map(pretestAttempts.map((a) => [a.student_id, a.score]));
-  const posttestByStudent = new Map(posttestAttempts.map((a) => [a.student_id, a.score]));
-
-  return students.map((s) => ({
-    student_id: s.id,
-    student_name: s.full_name,
-    class_name: s.class_name,
-    pretest_score: pretestByStudent.get(s.id) ?? null,
-    posttest_score: posttestByStudent.get(s.id) ?? null,
+  const scoreMaps = TEST_TYPES.map((t, i) => ({
+    type: t.type,
+    map: new Map(attemptsByType[i].map((a) => [a.student_id, a.score])),
   }));
+
+  return students.map((s) => {
+    const scores = {} as Record<TestType, number | null>;
+    for (const { type, map } of scoreMaps) {
+      scores[type] = map.get(s.id) ?? null;
+    }
+    return {
+      student_id: s.id,
+      student_name: s.full_name,
+      class_name: s.class_name,
+      scores,
+    };
+  });
 }

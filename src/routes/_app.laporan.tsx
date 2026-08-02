@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireGuru } from "@/lib/route-guards";
-import { fetchNilaiRekap } from "@/features/tests/testsApi";
+import { fetchNilaiRekap, TEST_TYPES } from "@/features/tests/testsApi";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/_app/laporan")({
@@ -13,19 +13,18 @@ export const Route = createFileRoute("/_app/laporan")({
       supabase.from("reflections").select("student_id"),
     ]);
 
-    const pretestScores = rows.map((r) => r.pretest_score).filter((v): v is number => v !== null);
-    const posttestScores = rows.map((r) => r.posttest_score).filter((v): v is number => v !== null);
-    const avgPretest = average(pretestScores);
-    const avgPosttest = average(posttestScores);
+    const averages = TEST_TYPES.map((t) => ({
+      type: t.type,
+      label: t.label,
+      avg: average(rows.map((r) => r.scores[t.type]).filter((v): v is number => v !== null)),
+      done: rows.filter((r) => r.scores[t.type] !== null).length,
+    }));
 
     const distinctReflectors = new Set((reflectionRows ?? []).map((r) => r.student_id)).size;
 
     return {
       totalSiswa: totalSiswa ?? 0,
-      pretestDone: pretestScores.length,
-      posttestDone: posttestScores.length,
-      avgPretest,
-      avgPosttest,
+      averages,
       distinctReflectors,
     };
   },
@@ -38,17 +37,17 @@ function average(nums: number[]): number | null {
 }
 
 function LaporanPage() {
-  const { totalSiswa, pretestDone, posttestDone, avgPretest, avgPosttest, distinctReflectors } =
-    Route.useLoaderData();
+  const { totalSiswa, averages, distinctReflectors } = Route.useLoaderData();
 
-  const peningkatan =
-    avgPretest !== null && avgPosttest !== null ? avgPosttest - avgPretest : null;
+  const avgPretest = averages.find((a) => a.type === "pretest")!.avg;
+  // Bandingkan pretest dengan siklus posttest terakhir yang sudah ada datanya
+  const lastPosttestWithData = [...averages].reverse().find((a) => a.type !== "pretest" && a.avg !== null);
   const peningkatanPct =
-    peningkatan !== null && avgPretest && avgPretest > 0
-      ? Math.round((peningkatan / avgPretest) * 100)
+    avgPretest !== null && avgPretest > 0 && lastPosttestWithData?.avg != null
+      ? Math.round(((lastPosttestWithData.avg - avgPretest) / avgPretest) * 100)
       : null;
-  const partisipasiRefleksi =
-    totalSiswa > 0 ? Math.round((distinctReflectors / totalSiswa) * 100) : null;
+
+  const partisipasiRefleksi = totalSiswa > 0 ? Math.round((distinctReflectors / totalSiswa) * 100) : null;
 
   return (
     <div className="space-y-6">
@@ -60,7 +59,21 @@ function LaporanPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {averages.map((a) => (
+          <Card key={a.type}>
+            <CardContent className="p-6">
+              <div className="text-sm text-muted-foreground">{a.label}</div>
+              <div className="mt-1 text-3xl font-bold">{a.avg ?? "-"}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {a.done} dari {totalSiswa} siswa sudah mengerjakan
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardContent className="p-6">
             <div className="text-sm text-muted-foreground">Peningkatan Nilai</div>
@@ -68,9 +81,9 @@ function LaporanPage() {
               {peningkatanPct !== null ? `${peningkatanPct >= 0 ? "+" : ""}${peningkatanPct}%` : "-"}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {avgPretest !== null && avgPosttest !== null
-                ? `Rata-rata pretest ${avgPretest} → posttest ${avgPosttest}`
-                : "Belum ada data pretest & posttest"}
+              {lastPosttestWithData
+                ? `Pretest ${avgPretest} → ${lastPosttestWithData.label} ${lastPosttestWithData.avg}`
+                : "Belum ada data pretest & posttest yang bisa dibandingkan"}
             </div>
           </CardContent>
         </Card>
@@ -85,15 +98,6 @@ function LaporanPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-sm text-muted-foreground">Kepuasan Siswa</div>
-            <div className="mt-1 text-3xl font-bold text-muted-foreground">-</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Belum ada survei kepuasan siswa
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -102,15 +106,14 @@ function LaporanPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed">
           <p>
-            Dari {totalSiswa} siswa terdaftar, {pretestDone} siswa telah mengerjakan pretest dan{" "}
-            {posttestDone} siswa telah mengerjakan posttest.
-            {avgPretest !== null && avgPosttest !== null && (
-              <>
-                {" "}
-                Rata-rata skor meningkat dari {avgPretest} menjadi {avgPosttest}
-                {peningkatanPct !== null && ` (${peningkatanPct >= 0 ? "+" : ""}${peningkatanPct}%)`}.
-              </>
-            )}
+            Dari {totalSiswa} siswa terdaftar,{" "}
+            {averages.map((a, i) => (
+              <span key={a.type}>
+                {i > 0 && ", "}
+                {a.done} siswa telah mengerjakan {a.label.toLowerCase()}
+              </span>
+            ))}
+            .
           </p>
           <p>
             {distinctReflectors} dari {totalSiswa} siswa ({partisipasiRefleksi ?? 0}%) sudah mengirim

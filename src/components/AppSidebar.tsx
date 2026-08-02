@@ -41,7 +41,9 @@ const studentNav: NavItem[] = [
   { title: "Materi", url: "/materi", icon: BookOpen },
   { title: "Refleksi", url: "/refleksi-saya", icon: MessageSquareHeart },
   { title: "Pretest", url: "/pretest", icon: FileQuestion },
-  { title: "Posttest", url: "/posttest", icon: FileCheck2 },
+  { title: "Posttest Siklus 1", url: "/posttest-siklus1", icon: FileCheck2 },
+  { title: "Posttest Siklus 2", url: "/posttest-siklus2", icon: FileCheck2 },
+  { title: "Posttest Siklus 3", url: "/posttest-siklus3", icon: FileCheck2 },
   { title: "Nilai", url: "/nilai", icon: LineChart },
   { title: "Profil", url: "/profil", icon: User },
 ];
@@ -55,7 +57,9 @@ const teacherNav: NavItem[] = [
 
   { title: "Kelola Pretest", url: "/kelola-pretest", icon: FileQuestion },
 
-  { title: "Kelola Posttest", url: "/kelola-posttest", icon: FileCheck2 },
+  { title: "Kelola Posttest S1", url: "/kelola-posttest-siklus1", icon: FileCheck2 },
+  { title: "Kelola Posttest S2", url: "/kelola-posttest-siklus2", icon: FileCheck2 },
+  { title: "Kelola Posttest S3", url: "/kelola-posttest-siklus3", icon: FileCheck2 },
 
   { title: "Refleksi Siswa", url: "/refleksi", icon: MessageSquareHeart },
 
@@ -81,8 +85,8 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-  <GraduationCap className="h-5 w-5" />
-</div>
+            <GraduationCap className="h-5 w-5" />
+          </div>
           <div className="flex flex-col leading-tight">
             <span className="text-base font-bold tracking-tight">HisToSky</span>
             <span className="text-xs text-muted-foreground">

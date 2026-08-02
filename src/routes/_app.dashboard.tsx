@@ -15,15 +15,17 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { fetchMeetings } from "@/features/meetings/meetingsApi";
 import { fetchProgressMap, getOverallProgressIn } from "@/features/meetings/progress";
 import { fetchTeacherDashboardStats } from "@/features/dashboard/teacherStats";
+import { fetchMyAttempt } from "@/features/tests/testsApi";
 
 export const Route = createFileRoute("/_app/dashboard")({
   loader: async () => {
-    const [progressMap, teacherStats, publishedMeetingsCount] = await Promise.all([
+    const [progressMap, teacherStats, publishedMeetingsCount, pretestAttempt] = await Promise.all([
       fetchProgressMap(),
       fetchTeacherDashboardStats(),
       fetchMeetings().then((ms) => ms.filter((m) => m.status === "published").length),
+      fetchMyAttempt("pretest"),
     ]);
-    return { progressMap, teacherStats, publishedMeetingsCount };
+    return { progressMap, teacherStats, publishedMeetingsCount, pretestAttempt };
   },
   component: DashboardPage,
 });
@@ -62,7 +64,7 @@ function StatCard({
 
 function StudentDashboard() {
   const { user } = useAuth();
-  const { progressMap, publishedMeetingsCount } = Route.useLoaderData();
+  const { progressMap, publishedMeetingsCount, pretestAttempt } = Route.useLoaderData();
   const { completed, total } = getOverallProgressIn(progressMap, publishedMeetingsCount);
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -82,7 +84,11 @@ function StudentDashboard() {
         <StatCard title="Pertemuan Selesai" value={`${completed}/${total}`} icon={BookOpen} />
         <StatCard title="Progres Belajar" value={`${progressPct}%`} icon={TrendingUp} />
         <StatCard title="Nilai Rata-rata" value="-" icon={Trophy} hint="Belum ada data" />
-        <StatCard title="Pretest" value="Belum dikerjakan" icon={FileQuestion} />
+        <StatCard
+          title="Pretest"
+          value={pretestAttempt ? String(pretestAttempt.score) : "Belum dikerjakan"}
+          icon={FileQuestion}
+        />
       </div>
 
       <Card>

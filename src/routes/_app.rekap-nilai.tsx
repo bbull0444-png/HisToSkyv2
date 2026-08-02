@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireGuru } from "@/lib/route-guards";
-import { fetchNilaiRekap } from "@/features/tests/testsApi";
+import { fetchNilaiRekap, TEST_TYPES } from "@/features/tests/testsApi";
 
 export const Route = createFileRoute("/_app/rekap-nilai")({
   beforeLoad: requireGuru,
@@ -16,6 +16,11 @@ export const Route = createFileRoute("/_app/rekap-nilai")({
   },
   component: RekapNilaiPage,
 });
+
+function average(nums: number[]): number | null {
+  if (nums.length === 0) return null;
+  return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+}
 
 function RekapNilaiPage() {
   const { rows } = Route.useLoaderData();
@@ -27,19 +32,17 @@ function RekapNilaiPage() {
     return rows.filter((r) => r.student_name.toLowerCase().includes(q));
   }, [rows, search]);
 
-  const avgPretest = average(rows.map((r) => r.pretest_score).filter(isNum));
-  const avgPosttest = average(rows.map((r) => r.posttest_score).filter(isNum));
+  const classAverages = TEST_TYPES.map((t) => ({
+    label: t.label,
+    avg: average(rows.map((r) => r.scores[t.type]).filter((v): v is number => v !== null)),
+  }));
 
   const handleExportCsv = () => {
-    const header = ["Nama", "Kelas", "Pretest", "Posttest", "Peningkatan"];
+    const header = ["Nama", "Kelas", ...TEST_TYPES.map((t) => t.label)];
     const body = filtered.map((r) => [
       r.student_name,
       r.class_name ?? "-",
-      r.pretest_score ?? "",
-      r.posttest_score ?? "",
-      r.pretest_score !== null && r.posttest_score !== null
-        ? String(r.posttest_score - r.pretest_score)
-        : "",
+      ...TEST_TYPES.map((t) => r.scores[t.type] ?? ""),
     ]);
     const csv = [header, ...body].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -57,8 +60,13 @@ function RekapNilaiPage() {
         <div>
           <h1 className="text-2xl font-bold">Rekap Nilai</h1>
           <p className="text-sm text-muted-foreground">
-            Nilai pretest & posttest tiap siswa. Rata-rata kelas: pretest{" "}
-            <strong>{avgPretest ?? "-"}</strong>, posttest <strong>{avgPosttest ?? "-"}</strong>.
+            Rata-rata kelas:{" "}
+            {classAverages.map((c, i) => (
+              <span key={c.label}>
+                {i > 0 && " · "}
+                {c.label} <strong>{c.avg ?? "-"}</strong>
+              </span>
+            ))}
           </p>
         </div>
         <Button variant="outline" onClick={handleExportCsv} className="gap-1.5">
@@ -76,9 +84,7 @@ function RekapNilaiPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            {filtered.length} siswa
-          </CardTitle>
+          <CardTitle className="text-base">{filtered.length} siswa</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -86,9 +92,11 @@ function RekapNilaiPage() {
               <TableRow>
                 <TableHead>Nama</TableHead>
                 <TableHead>Kelas</TableHead>
-                <TableHead className="text-right">Pretest</TableHead>
-                <TableHead className="text-right">Posttest</TableHead>
-                <TableHead className="text-right">Peningkatan</TableHead>
+                {TEST_TYPES.map((t) => (
+                  <TableHead key={t.type} className="text-right">
+                    {t.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,29 +104,16 @@ function RekapNilaiPage() {
                 <TableRow key={r.student_id}>
                   <TableCell className="font-medium">{r.student_name}</TableCell>
                   <TableCell className="text-muted-foreground">{r.class_name ?? "-"}</TableCell>
-                  <TableCell className="text-right">{r.pretest_score ?? "-"}</TableCell>
-                  <TableCell className="text-right">{r.posttest_score ?? "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {r.pretest_score !== null && r.posttest_score !== null ? (
-                      <span
-                        className={
-                          r.posttest_score - r.pretest_score >= 0
-                            ? "text-primary"
-                            : "text-destructive"
-                        }
-                      >
-                        {r.posttest_score - r.pretest_score >= 0 ? "+" : ""}
-                        {r.posttest_score - r.pretest_score}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
+                  {TEST_TYPES.map((t) => (
+                    <TableCell key={t.type} className="text-right">
+                      {r.scores[t.type] ?? "-"}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={2 + TEST_TYPES.length} className="text-center text-muted-foreground">
                     Tidak ada data.
                   </TableCell>
                 </TableRow>
@@ -129,13 +124,4 @@ function RekapNilaiPage() {
       </Card>
     </div>
   );
-}
-
-function isNum(n: number | null): n is number {
-  return n !== null;
-}
-
-function average(nums: number[]): number | null {
-  if (nums.length === 0) return null;
-  return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
 }
