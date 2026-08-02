@@ -131,7 +131,7 @@ function ReflectionCard({
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Apa yang kamu pelajari dari pertemuan ini? Bagian mana yang masih membingungkan?"
+          placeholder="Satu hal baru yang saya pelajari hari ini tentang peran Nusantara dalam perdagangan dunia adalah"
           rows={3}
           disabled={hasSaved}
         />

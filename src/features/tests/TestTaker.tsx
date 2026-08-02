@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, FileQuestion, Loader2 } from "lucide-react";
+import { CheckCircle2, FileQuestion, Loader2, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -14,6 +14,8 @@ import {
   type TestQuestion,
   type TestType,
 } from "@/features/tests/testsApi";
+import { fetchMeetings } from "@/features/meetings/meetingsApi";
+import { fetchProgressMap } from "@/features/meetings/progress";
 
 /**
  * Random generator deterministik (mulberry32) dari sebuah seed angka —
@@ -69,30 +71,65 @@ export function TestTaker({
   title,
   description,
   testType,
+  unlockAfterMeetingOrder,
 }: {
   title: string;
   description: string;
   testType: TestType;
+  /**
+   * Kalau diisi: test ini terkunci sampai siswa menyelesaikan pertemuan
+   * ke-N (1-indexed, berdasarkan URUTAN pertemuan, bukan ID tetap — jadi
+   * tetap benar walau guru pernah hapus/reorder pertemuan). Contoh:
+   * Posttest Siklus 1 -> unlockAfterMeetingOrder={1} (butuh Pertemuan 1
+   * selesai), Siklus 2 -> {2}, dst. Kalau tidak diisi (mis. Pretest),
+   * test selalu terbuka.
+   */
+  unlockAfterMeetingOrder?: number;
 }) {
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [attempt, setAttempt] = useState<TestAttempt | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [requiredMeetingTitle, setRequiredMeetingTitle] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([fetchQuestions(testType), fetchMyAttempt(testType)]).then(([qs, a]) => {
+
+    Promise.all([
+      fetchQuestions(testType),
+      fetchMyAttempt(testType),
+      unlockAfterMeetingOrder ? fetchMeetings() : Promise.resolve(null),
+      unlockAfterMeetingOrder ? fetchProgressMap() : Promise.resolve(null),
+    ]).then(([qs, a, meetings, progressMap]) => {
       if (cancelled) return;
       setQuestions(qs);
       setAttempt(a);
+
+      if (unlockAfterMeetingOrder && meetings && progressMap) {
+        // Pertemuan ke-N berdasarkan urutan (meeting_order ascending),
+        // BUKAN id tetap — tetap benar walau ada pertemuan yang dihapus.
+        const requiredMeeting = meetings[unlockAfterMeetingOrder - 1];
+        if (requiredMeeting) {
+          const isCompleted = progressMap[requiredMeeting.id] === "completed";
+          setLocked(!isCompleted);
+          setRequiredMeetingTitle(requiredMeeting.title);
+        } else {
+          // Pertemuan yang dibutuhkan belum ada/belum dibuat guru -> aman
+          // dikunci, daripada siswa nyasar ngerjain test tanpa materi.
+          setLocked(true);
+          setRequiredMeetingTitle(`Pertemuan ${unlockAfterMeetingOrder}`);
+        }
+      }
+
       setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [testType]);
+  }, [testType, unlockAfterMeetingOrder]);
 
   // Acak urutan soal + urutan opsi jawaban, seed dari (id siswa + jenis
   // test) supaya tiap siswa dapat urutan beda, tapi urutan itu tetap SAMA
@@ -149,6 +186,30 @@ export function TestTaker({
             <p className="text-3xl font-bold">{attempt.score}</p>
             <p className="text-sm text-muted-foreground">
               Benar {attempt.correct_count} dari {attempt.total_questions} soal
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (locked) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        <Card className="max-w-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Lock className="h-5 w-5 text-muted-foreground" /> Belum bisa dikerjakan
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Selesaikan <strong>{requiredMeetingTitle}</strong> terlebih dahulu (sampai tombol
+              "Tandai Selesai" di halaman materi) sebelum bisa mengerjakan {title.toLowerCase()}.
             </p>
           </CardContent>
         </Card>

@@ -25,7 +25,6 @@ function AppLayout() {
 const GURU_ONLY_PATHS = [
   "/kelola-materi",
   "/kelola-kelompok",
-  "/kelola-quiz",
   "/kelola-lkpd",
   "/kelola-pretest",
   "/kelola-posttest-siklus1",

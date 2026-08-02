@@ -154,9 +154,6 @@ function TeacherDashboard() {
               <Link to="/kelola-lkpd">Kelola LKPD</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link to="/kelola-quiz">Kelola Quiz</Link>
-            </Button>
-            <Button asChild variant="outline">
               <Link to="/rekap-nilai">Rekap Nilai</Link>
             </Button>
           </CardContent>
