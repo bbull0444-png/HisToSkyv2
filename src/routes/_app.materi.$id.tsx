@@ -364,7 +364,7 @@ function StudentResponseForm({ meetingId }: { meetingId: number }) {
         <Textarea
           value={response}
           onChange={(e) => setResponse(e.target.value)}
-          placeholder="Tulis tanggapan kelompokmu di sini..."
+          placeholder="Tulis tanggapanmu di sini..."
           rows={6}
           disabled={hasSaved}
         />
