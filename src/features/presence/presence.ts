@@ -11,10 +11,18 @@ async function pingOnce() {
   const studentId = Number(user.id);
   if (!Number.isFinite(studentId)) return;
 
-  await supabase
+  const { error } = await supabase
     .from("students")
     .update({ last_active_at: new Date().toISOString() })
     .eq("id", studentId);
+
+  if (error) {
+    // Sengaja cuma console.error, bukan toast — heartbeat jalan diam-diam
+    // tiap 45 detik, gak enak kalau muncul notif tiap gagal. Tapi errornya
+    // HARUS kelihatan di console biar gampang ke-debug (RLS/kolom hilang,
+    // dll), gak ketelen diem-diem kaya sebelumnya.
+    console.error("[presence] gagal update last_active_at:", error.message);
+  }
 }
 
 /**
