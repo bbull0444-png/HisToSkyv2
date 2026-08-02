@@ -27,7 +27,7 @@ import {
   type TestType,
 } from "@/features/tests/testsApi";
 
-const EMPTY_OPTIONS = ["", "", "", ""];
+const EMPTY_OPTIONS = ["", "", "", "", ""];
 
 export function KelolaTestPage({ title, testType }: { title: string; testType: TestType }) {
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
@@ -67,7 +67,7 @@ export function KelolaTestPage({ title, testType }: { title: string; testType: T
 
   const handleSave = async () => {
     if (!questionText.trim() || options.some((o) => !o.trim())) {
-      toast.error("Isi pertanyaan dan semua 4 pilihan jawaban dulu");
+      toast.error("Isi pertanyaan dan semua pilihan jawaban dulu");
       return;
     }
     setSaving(true);
