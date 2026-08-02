@@ -1,10 +1,27 @@
 import { createFileRoute, Link, notFound, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, PartyPopper, Eye, Loader2, Save, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  PartyPopper,
+  Eye,
+  Loader2,
+  Save,
+  Trash2,
+  Presentation,
+  Download,
+  Upload,
+  RefreshCw,
+  Lock,
+  HelpCircle,
+  Heart,
+  Pencil,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +52,22 @@ import {
   saveMyResponse,
 } from "@/features/responses/studentResponses";
 import MyGroupCard from "@/components/kelompok/MyGroupCard";
+import { getGroups } from "@/lib/kelompok";
+import { supabase } from "@/lib/supabase";
+import {
+  fetchMyGroupContext,
+  fetchGroupProducts,
+  uploadOrReplaceGroupProduct,
+  fetchMyQuestion,
+  saveMyQuestion,
+  deleteMyQuestion,
+  fetchMyAppreciation,
+  saveMyAppreciation,
+  deleteMyAppreciation,
+  fetchSelectedQuestion,
+  type GroupProductWithGroup,
+  type PresentationQuestionWithRelations,
+} from "@/features/presentasi/presentasi";
 
 export const Route = createFileRoute("/_app/materi/$id")({
   // Halaman ini sekarang dipakai DUA role: siswa ngerjain beneran, dan
@@ -184,7 +217,13 @@ function MateriDetail() {
         </div>
       </div>
 
-      <StageContent stage={stage} content={content} isGuru={isGuru} meetingId={meeting.id} />
+      <StageContent
+        stage={stage}
+        content={content}
+        isGuru={isGuru}
+        meetingId={meeting.id}
+        presentationLocked={meeting.presentationLocked}
+      />
 
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={goPrev} disabled={currentIdx === 0}>
@@ -235,11 +274,13 @@ function StageContent({
   content,
   isGuru,
   meetingId,
+  presentationLocked,
 }: {
   stage: LearningStage;
   content: MateriKontenMap;
   isGuru: boolean;
   meetingId: number;
+  presentationLocked: boolean;
 }) {
   const label = STAGES.find((s) => s.key === stage)?.label;
   const html = content[stage];
@@ -272,6 +313,12 @@ function StageContent({
         {stage === "menulisTanggapan" && !isGuru && (
           <div className="mt-6">
             <StudentResponseForm meetingId={meetingId} />
+          </div>
+        )}
+
+        {stage === "presentasi" && !isGuru && (
+          <div className="mt-6">
+            <PresentationStage meetingId={meetingId} locked={presentationLocked} />
           </div>
         )}
       </CardContent>
@@ -421,5 +468,476 @@ function StudentResponseForm({ meetingId }: { meetingId: number }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Presentasi Hasil Kelompok (diferensiasi produk)
+// ---------------------------------------------------------------------------
+
+function PresentationStage({ meetingId, locked }: { meetingId: number; locked: boolean }) {
+  const [groups, setGroups] = useState<{ id: number; group_name: string }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGroups()
+      .then((data) => {
+        if (!cancelled) setGroups(data ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setGroups([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {locked && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          <Lock className="h-4 w-4 shrink-0" />
+          Sesi presentasi sudah dimulai guru. Pertanyaan &amp; apresiasi tidak bisa lagi diubah.
+        </div>
+      )}
+
+      <GroupProductSection meetingId={meetingId} />
+
+      <SelectedQuestionBanner meetingId={meetingId} />
+
+      <PresentationFeedbackSection
+        meetingId={meetingId}
+        locked={locked}
+        groups={groups}
+        kind="pertanyaan"
+      />
+      <PresentationFeedbackSection
+        meetingId={meetingId}
+        locked={locked}
+        groups={groups}
+        kind="apresiasi"
+      />
+    </div>
+  );
+}
+
+function SelectedQuestionBanner({ meetingId }: { meetingId: number }) {
+  const [loading, setLoading] = useState(true);
+  const [question, setQuestion] = useState<PresentationQuestionWithRelations | null>(null);
+
+  const load = async () => {
+    const q = await fetchSelectedQuestion(meetingId);
+    setQuestion(q);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+
+    // Live-update: begitu guru mengganti pertanyaan terpilih di halaman
+    // Moderasi Presentasi, banner ini otomatis ikut berubah tanpa reload.
+    const channel = supabase
+      .channel(`selected-question-${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "presentation_questions",
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => load(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
+
+  if (loading) return null;
+
+  return (
+    <Card className="border-primary/40 bg-primary/5">
+      <CardHeader>
+        <CardTitle className="text-base">Pertanyaan Terpilih Guru</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {question ? (
+          <div>
+            <div className="text-sm font-medium">{question.student_name}</div>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{question.question}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Guru belum memilih pertanyaan.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProductPreview({
+  product,
+}: {
+  product: { file_url: string; file_type: string; file_name: string };
+}) {
+  if (product.file_type === "pdf") {
+    return (
+      <iframe
+        src={product.file_url}
+        title={product.file_name}
+        className="h-64 w-full rounded-md border"
+      />
+    );
+  }
+
+  if (product.file_type === "png" || product.file_type === "jpg") {
+    return (
+      <img
+        src={product.file_url}
+        alt={product.file_name}
+        className="max-h-64 w-full rounded-md border object-contain"
+      />
+    );
+  }
+
+  // PPT/PPTX: tidak ada preview inline, cukup ikon + tautan unduh.
+  return (
+    <a
+      href={product.file_url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+    >
+      <Presentation className="h-4 w-4 shrink-0 text-primary" />
+      <span className="truncate">{product.file_name}</span>
+      <Download className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+    </a>
+  );
+}
+
+function GroupProductSection({ meetingId }: { meetingId: number }) {
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [groupContext, setGroupContext] = useState<{ groupId: number; isLeader: boolean } | null>(
+    null,
+  );
+  const [products, setProducts] = useState<GroupProductWithGroup[]>([]);
+
+  const load = async () => {
+    const [context, list] = await Promise.all([fetchMyGroupContext(), fetchGroupProducts(meetingId)]);
+    setGroupContext(context);
+    setProducts(list);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
+
+  const myProduct = groupContext
+    ? (products.find((p) => p.group_id === groupContext.groupId) ?? null)
+    : null;
+  const otherProducts = groupContext
+    ? products.filter((p) => p.group_id !== groupContext.groupId)
+    : products;
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !groupContext) return;
+
+    setUploading(true);
+    try {
+      await uploadOrReplaceGroupProduct(meetingId, groupContext.groupId, file);
+      toast.success("Produk kelompok berhasil diunggah");
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Gagal mengunggah produk kelompok");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Memuat produk kelompok...
+      </p>
+    );
+  }
+
+  if (!groupContext) {
+    return (
+      <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+        Kamu belum tergabung dalam kelompok mana pun. Ikuti tahap Pembentukan Kelompok Belajar
+        terlebih dahulu untuk mengakses produk kelompok.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Produk Kelompok Anda</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {myProduct ? (
+            <ProductPreview product={myProduct} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Kelompokmu belum mengunggah produk.</p>
+          )}
+
+          {groupContext.isLeader ? (
+            <div>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">
+                {uploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : myProduct ? (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                {uploading ? "Mengunggah..." : myProduct ? "Ganti Produk" : "Unggah Produk"}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.ppt,.pptx,.png,.jpg,.jpeg,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/png,image/jpeg"
+                  disabled={uploading}
+                  onChange={handleFileChange}
+                />
+              </label>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Format PDF, PPT/PPTX, PNG, atau JPG. Maksimal 20MB. Mengunggah file baru akan
+                mengganti produk kelompok yang lama.
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Hanya ketua kelompok yang bisa mengunggah/mengganti produk kelompok.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Galeri Produk Kelompok Lain</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {otherProducts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Belum ada kelompok lain yang mengunggah produk.
+            </p>
+          ) : (
+            otherProducts.map((p) => (
+              <div key={p.id} className="space-y-2 rounded-lg border p-3">
+                <div className="text-sm font-medium">{p.group_name}</div>
+                <ProductPreview product={p} />
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PresentationFeedbackSection({
+  meetingId,
+  locked,
+  groups,
+  kind,
+}: {
+  meetingId: number;
+  locked: boolean;
+  groups: { id: number; group_name: string }[];
+  kind: "pertanyaan" | "apresiasi";
+}) {
+  const isQuestion = kind === "pertanyaan";
+  const label = isQuestion ? "Pertanyaan" : "Apresiasi";
+  const Icon = isQuestion ? HelpCircle : Heart;
+
+  const [loading, setLoading] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [savedGroupName, setSavedGroupName] = useState("");
+  const [targetGroupId, setTargetGroupId] = useState("");
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const existing = isQuestion ? await fetchMyQuestion(meetingId) : await fetchMyAppreciation(meetingId);
+      if (cancelled) return;
+      if (existing) {
+        const gid = existing.target_group_id;
+        const value = isQuestion ? (existing as { question: string }).question : (existing as { message: string }).message;
+        setTargetGroupId(String(gid));
+        setText(value);
+        setSavedGroupName(groups.find((g) => g.id === gid)?.group_name ?? "Kelompok");
+        setSubmitted(true);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId, kind, groups.length]);
+
+  const handleSave = async () => {
+    if (!targetGroupId || !text.trim()) return;
+    setSaving(true);
+    try {
+      if (isQuestion) {
+        await saveMyQuestion(meetingId, Number(targetGroupId), text.trim());
+      } else {
+        await saveMyAppreciation(meetingId, Number(targetGroupId), text.trim());
+      }
+      setSavedGroupName(groups.find((g) => g.id === Number(targetGroupId))?.group_name ?? "Kelompok");
+      setSubmitted(true);
+      setEditing(false);
+      toast.success(`${label} berhasil dikirim`);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Gagal mengirim ${label.toLowerCase()}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setSaving(true);
+    try {
+      if (isQuestion) {
+        await deleteMyQuestion(meetingId);
+      } else {
+        await deleteMyAppreciation(meetingId);
+      }
+      setSubmitted(false);
+      setEditing(false);
+      setText("");
+      setTargetGroupId("");
+      toast.success(`${label} dihapus, silakan kirim ulang`);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Gagal menghapus ${label.toLowerCase()}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cardTitle = isQuestion ? "Pertanyaan untuk Kelompok Lain" : "Apresiasi untuk Kelompok Lain";
+
+  if (loading) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Memuat {label.toLowerCase()}...
+      </p>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon className="h-4 w-4" />
+          {cardTitle}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {submitted && !editing ? (
+          <div className="space-y-2">
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Ditujukan ke: {savedGroupName}</div>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{text}</p>
+            </div>
+            {!locked && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="gap-1.5">
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" disabled={saving} className="gap-1.5">
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Hapus
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hapus {label.toLowerCase()}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {label} ini akan dihapus. Kamu bisa menulis ulang selama sesi presentasi
+                        belum dikunci guru.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="gap-1.5">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Hapus
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
+          </div>
+        ) : locked ? (
+          <p className="text-sm text-muted-foreground">
+            Sesi presentasi sudah dikunci guru. Kamu tidak sempat mengirim {label.toLowerCase()}.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <Select value={targetGroupId} onValueChange={setTargetGroupId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih kelompok tujuan" />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={String(g.id)}>
+                    {g.group_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={
+                isQuestion ? "Tulis satu pertanyaan untuk kelompok terkait..." : "Tulis satu apresiasi untuk kelompok terkait..."
+              }
+              rows={3}
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving || !targetGroupId || !text.trim()}
+                className="gap-1.5"
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {saving ? "Mengirim..." : `Kirim ${label}`}
+              </Button>
+              {submitted && (
+                <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                  Batal
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

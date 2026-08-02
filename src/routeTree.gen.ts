@@ -19,6 +19,7 @@ import { Route as AppKelolaLkpdRouteImport } from './routes/_app.kelola-lkpd'
 import { Route as AppKelolaPosttestSiklus1RouteImport } from './routes/_app.kelola-posttest-siklus1'
 import { Route as AppKelolaPosttestSiklus2RouteImport } from './routes/_app.kelola-posttest-siklus2'
 import { Route as AppKelolaPosttestSiklus3RouteImport } from './routes/_app.kelola-posttest-siklus3'
+import { Route as AppKelolaPresentasiRouteImport } from './routes/_app.kelola-presentasi'
 import { Route as AppKelolaPretestRouteImport } from './routes/_app.kelola-pretest'
 import { Route as AppKelolaTanggapanRouteImport } from './routes/_app.kelola-tanggapan'
 import { Route as AppLaporanRouteImport } from './routes/_app.laporan'
@@ -89,6 +90,11 @@ const AppKelolaPosttestSiklus3Route =
     path: '/kelola-posttest-siklus3',
     getParentRoute: () => AppRoute,
   } as any)
+const AppKelolaPresentasiRoute = AppKelolaPresentasiRouteImport.update({
+  id: '/kelola-presentasi',
+  path: '/kelola-presentasi',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppKelolaPretestRoute = AppKelolaPretestRouteImport.update({
   id: '/kelola-pretest',
   path: '/kelola-pretest',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
   '/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
   '/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
+  '/kelola-presentasi': typeof AppKelolaPresentasiRoute
   '/kelola-pretest': typeof AppKelolaPretestRoute
   '/kelola-tanggapan': typeof AppKelolaTanggapanRoute
   '/laporan': typeof AppLaporanRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
   '/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
   '/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
+  '/kelola-presentasi': typeof AppKelolaPresentasiRoute
   '/kelola-pretest': typeof AppKelolaPretestRoute
   '/kelola-tanggapan': typeof AppKelolaTanggapanRoute
   '/laporan': typeof AppLaporanRoute
@@ -243,6 +251,7 @@ export interface FileRoutesById {
   '/_app/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
   '/_app/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
   '/_app/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
+  '/_app/kelola-presentasi': typeof AppKelolaPresentasiRoute
   '/_app/kelola-pretest': typeof AppKelolaPretestRoute
   '/_app/kelola-tanggapan': typeof AppKelolaTanggapanRoute
   '/_app/laporan': typeof AppLaporanRoute
@@ -273,6 +282,7 @@ export interface FileRouteTypes {
     | '/kelola-posttest-siklus1'
     | '/kelola-posttest-siklus2'
     | '/kelola-posttest-siklus3'
+    | '/kelola-presentasi'
     | '/kelola-pretest'
     | '/kelola-tanggapan'
     | '/laporan'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/kelola-posttest-siklus1'
     | '/kelola-posttest-siklus2'
     | '/kelola-posttest-siklus3'
+    | '/kelola-presentasi'
     | '/kelola-pretest'
     | '/kelola-tanggapan'
     | '/laporan'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/_app/kelola-posttest-siklus1'
     | '/_app/kelola-posttest-siklus2'
     | '/_app/kelola-posttest-siklus3'
+    | '/_app/kelola-presentasi'
     | '/_app/kelola-pretest'
     | '/_app/kelola-tanggapan'
     | '/_app/laporan'
@@ -425,6 +437,13 @@ declare module '@tanstack/react-router' {
       path: '/kelola-posttest-siklus3'
       fullPath: '/kelola-posttest-siklus3'
       preLoaderRoute: typeof AppKelolaPosttestSiklus3RouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kelola-presentasi': {
+      id: '/_app/kelola-presentasi'
+      path: '/kelola-presentasi'
+      fullPath: '/kelola-presentasi'
+      preLoaderRoute: typeof AppKelolaPresentasiRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/kelola-pretest': {
@@ -557,6 +576,7 @@ interface AppRouteChildren {
   AppKelolaPosttestSiklus1Route: typeof AppKelolaPosttestSiklus1Route
   AppKelolaPosttestSiklus2Route: typeof AppKelolaPosttestSiklus2Route
   AppKelolaPosttestSiklus3Route: typeof AppKelolaPosttestSiklus3Route
+  AppKelolaPresentasiRoute: typeof AppKelolaPresentasiRoute
   AppKelolaPretestRoute: typeof AppKelolaPretestRoute
   AppKelolaTanggapanRoute: typeof AppKelolaTanggapanRoute
   AppLaporanRoute: typeof AppLaporanRoute
@@ -584,6 +604,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppKelolaPosttestSiklus1Route: AppKelolaPosttestSiklus1Route,
   AppKelolaPosttestSiklus2Route: AppKelolaPosttestSiklus2Route,
   AppKelolaPosttestSiklus3Route: AppKelolaPosttestSiklus3Route,
+  AppKelolaPresentasiRoute: AppKelolaPresentasiRoute,
   AppKelolaPretestRoute: AppKelolaPretestRoute,
   AppKelolaTanggapanRoute: AppKelolaTanggapanRoute,
   AppLaporanRoute: AppLaporanRoute,

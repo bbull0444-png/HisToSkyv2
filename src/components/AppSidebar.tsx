@@ -16,6 +16,7 @@ import {
   LogOut,
   ScrollText,
   PenLine,
+  Presentation,
 } from "lucide-react";
 import {
   Sidebar,
@@ -65,6 +66,8 @@ const teacherNav: NavItem[] = [
   { title: "Refleksi Siswa", url: "/refleksi", icon: MessageSquareHeart },
 
   { title: "Kelola Tanggapan", url: "/kelola-tanggapan", icon: PenLine },
+
+  { title: "Moderasi Presentasi", url: "/kelola-presentasi", icon: Presentation },
 
   { title: "Data Siswa", url: "/data-siswa", icon: Users },
 
