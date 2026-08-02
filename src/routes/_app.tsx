@@ -40,8 +40,11 @@ const GURU_ONLY_PATHS = [
 // Kebalikannya: path khusus siswa. Tanpa ini, guru yang buka URL siswa
 // (misal /refleksi-saya) bisa tetap berinteraksi dengan halamannya walau
 // tulisannya diam-diam tidak pernah tersimpan — terkesan seperti macet/bug.
+// CATATAN: "/materi" SENGAJA tidak di sini (beda dari path siswa lain) —
+// karena guru butuh akses ke /materi/$id buat preview lewat tombol "Lihat"
+// di Kelola Materi. Proteksi listing /materi (index) buat non-guru tetap
+// dijaga oleh beforeLoad: requireSiswa di file route-nya sendiri.
 const SISWA_ONLY_PATHS = [
-  "/materi",
   "/refleksi-saya",
   "/nilai",
   "/pretest",
