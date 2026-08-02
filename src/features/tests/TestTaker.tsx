@@ -1,33 +1,71 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, FileQuestion } from "lucide-react";
+import { CheckCircle2, FileQuestion, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
+  fetchQuestions,
+  fetchMyAttempt,
   submitAttempt,
   type TestAttempt,
   type TestQuestion,
   type TestType,
 } from "@/features/tests/testsApi";
 
+/**
+ * PENTING: komponen ini SENGAJA mengambil data sendiri lewat useEffect
+ * (bukan lewat `loader` route), karena identitas siswa cuma ada di
+ * localStorage browser. Kalau datanya diambil lewat `loader`, render
+ * pertama sempat terjadi di SERVER (SSR) yang tidak punya akses ke
+ * localStorage sama sekali — hasilnya kadang soal/nilai muncul, kadang
+ * tidak, tergantung timing. Fetch di useEffect memastikan ini SELALU
+ * jalan di browser, konsisten setiap saat.
+ */
 export function TestTaker({
   title,
   description,
   testType,
-  questions,
-  existingAttempt,
 }: {
   title: string;
   description: string;
   testType: TestType;
-  questions: TestQuestion[];
-  existingAttempt: TestAttempt | null;
 }) {
-  const [attempt, setAttempt] = useState(existingAttempt);
+  const [loading, setLoading] = useState(true);
+  const [questions, setQuestions] = useState<TestQuestion[]>([]);
+  const [attempt, setAttempt] = useState<TestAttempt | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([fetchQuestions(testType), fetchMyAttempt(testType)]).then(([qs, a]) => {
+      if (cancelled) return;
+      setQuestions(qs);
+      setAttempt(a);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [testType]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Memuat...
+        </div>
+      </div>
+    );
+  }
 
   if (attempt) {
     return (
