@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Pencil, Save, X, Trash2, Plus } from "lucide-react";
 import { requireGuru } from "@/lib/route-guards";
+import { Badge } from "@/components/ui/badge";
+import { isOnline, formatLastActive } from "@/features/presence/presence";
 
 interface Student {
   id: number;
@@ -28,6 +30,7 @@ interface Student {
   gender: string;
   username: string;
   password: string;
+  last_active_at: string | null;
 }
 
 type StudentForm = Omit<Student, "id">;
@@ -74,6 +77,17 @@ export const Route = createFileRoute("/_app/data-siswa")({
 
     useEffect(() => {
       loadStudents();
+      // Refresh diam-diam tiap 30 detik biar kolom status tetap update
+      // tanpa guru perlu reload manual. Gak nyalain `loading` biar gak
+      // ada kedip spinner tiap refresh.
+      const id = setInterval(async () => {
+        const { data, error } = await supabase
+          .from("students")
+          .select("*")
+          .order("full_name", { ascending: true });
+        if (!error && data) setStudents(data as Student[]);
+      }, 30_000);
+      return () => clearInterval(id);
     }, []);
 
     function startEdit(s: Student) {
@@ -203,6 +217,7 @@ export const Route = createFileRoute("/_app/data-siswa")({
                     <TableHead>Gender</TableHead>
                     <TableHead>Username</TableHead>
                     <TableHead>Password</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -255,6 +270,7 @@ export const Route = createFileRoute("/_app/data-siswa")({
                           placeholder="password"
                         />
                       </TableCell>
+                      <TableCell className="text-muted-foreground">—</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button
                           size="sm"
@@ -342,6 +358,18 @@ export const Route = createFileRoute("/_app/data-siswa")({
                             />
                           ) : (
                             "••••••"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isOnline(s.last_active_at) ? (
+                            <Badge className="gap-1.5 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              Aktif sekarang
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {formatLastActive(s.last_active_at)}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-right space-x-1">
