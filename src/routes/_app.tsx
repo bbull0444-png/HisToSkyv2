@@ -27,6 +27,10 @@ const GURU_ONLY_PATHS = [
   "/kelola-kelompok",
   "/kelola-quiz",
   "/kelola-lkpd",
+  "/kelola-pretest",
+  "/kelola-posttest-siklus1",
+  "/kelola-posttest-siklus2",
+  "/kelola-posttest-siklus3",
   "/rekap-nilai",
   "/laporan",
   "/data-siswa",
@@ -37,7 +41,15 @@ const GURU_ONLY_PATHS = [
 // Kebalikannya: path khusus siswa. Tanpa ini, guru yang buka URL siswa
 // (misal /refleksi-saya) bisa tetap berinteraksi dengan halamannya walau
 // tulisannya diam-diam tidak pernah tersimpan — terkesan seperti macet/bug.
-const SISWA_ONLY_PATHS = ["/refleksi-saya", "/nilai", "/pretest", "/posttest"];
+const SISWA_ONLY_PATHS = [
+  "/materi",
+  "/refleksi-saya",
+  "/nilai",
+  "/pretest",
+  "/posttest-siklus1",
+  "/posttest-siklus2",
+  "/posttest-siklus3",
+];
 
 function Guarded() {
   const { user, loading } = useAuth();
@@ -80,25 +92,12 @@ function Guarded() {
 
   return (
     <SidebarProvider>
-      <div
-        className="relative flex min-h-screen w-full overflow-hidden"
-        style={{ background: "radial-gradient(ellipse 100% 60% at 50% 0%, #0B1330 0%, #060B18 60%)" }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              "radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.4) 50%, transparent 50%)," +
-              "radial-gradient(1px 1px at 75% 60%, rgba(255,255,255,0.3) 50%, transparent 50%)," +
-              "radial-gradient(1.5px 1.5px at 45% 80%, rgba(255,255,255,0.35) 50%, transparent 50%)",
-            backgroundSize: "500px 500px",
-          }}
-        />
+      <div className="flex min-h-screen w-full bg-muted/30">
         <AppSidebar />
-        <div className="relative z-10 flex flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 backdrop-blur-xl">
+        <div className="flex flex-1 flex-col">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
-            <div className="text-sm font-medium text-[#9AA3C2]">
+            <div className="text-sm font-medium text-muted-foreground">
               HisToSky · Pembelajaran Sejarah Berbasis model Cooperative Learning tipe CIRC
             </div>
           </header>
