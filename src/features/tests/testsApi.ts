@@ -196,7 +196,13 @@ export interface StudentNilaiSummary {
   student_id: number;
   student_name: string;
   class_name: string | null;
+  /** Skor per jenis test, null kalau belum dikerjakan. */
   scores: Record<TestType, number | null>;
+  /**
+   * ID baris `test_attempts` per jenis test — dipakai buat tombol hapus
+   * nilai spesifik (per sel) di Rekap Nilai. Null kalau belum ada attempt.
+   */
+  attemptIds: Record<TestType, number | null>;
 }
 
 /** Gabungan roster siswa asli + skor tiap jenis test, buat Rekap Nilai & Laporan. */
@@ -209,19 +215,41 @@ export async function fetchNilaiRekap(): Promise<StudentNilaiSummary[]> {
   const students = studentsRes.data ?? [];
   const scoreMaps = TEST_TYPES.map((t, i) => ({
     type: t.type,
-    map: new Map(attemptsByType[i].map((a) => [a.student_id, a.score])),
+    scoreByStudent: new Map(attemptsByType[i].map((a) => [a.student_id, a.score])),
+    idByStudent: new Map(attemptsByType[i].map((a) => [a.student_id, a.id])),
   }));
 
   return students.map((s) => {
     const scores = {} as Record<TestType, number | null>;
-    for (const { type, map } of scoreMaps) {
-      scores[type] = map.get(s.id) ?? null;
+    const attemptIds = {} as Record<TestType, number | null>;
+    for (const { type, scoreByStudent, idByStudent } of scoreMaps) {
+      scores[type] = scoreByStudent.get(s.id) ?? null;
+      attemptIds[type] = idByStudent.get(s.id) ?? null;
     }
     return {
       student_id: s.id,
       student_name: s.full_name,
       class_name: s.class_name,
       scores,
+      attemptIds,
     };
   });
+}
+
+/** Hapus satu nilai (1 attempt) spesifik — dipakai tombol hapus per sel di Rekap Nilai. */
+export async function deleteAttempt(attemptId: number): Promise<void> {
+  const { error } = await supabase.from("test_attempts").delete().eq("id", attemptId);
+  if (error) throw new Error("Gagal menghapus nilai. Coba lagi.");
+}
+
+/**
+ * Reset SEMUA nilai — hapus seluruh baris `test_attempts` (pretest +
+ * posttest siklus 1/2/3, semua siswa). Dipakai tombol "Reset Semua Nilai".
+ * Tidak menyentuh soal (`test_questions`) atau data siswa (`students`).
+ */
+export async function resetAllAttempts(): Promise<void> {
+  // `.delete()` Supabase butuh filter, jadi pakai kondisi yang selalu benar
+  // (id lebih besar dari 0) supaya semua baris ke-hapus.
+  const { error } = await supabase.from("test_attempts").delete().gt("id", 0);
+  if (error) throw new Error("Gagal reset nilai. Coba lagi.");
 }

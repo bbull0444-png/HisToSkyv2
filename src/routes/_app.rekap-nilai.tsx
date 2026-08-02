@@ -1,12 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Radio } from "lucide-react";
+import { toast } from "sonner";
+import { Download, Radio, Trash2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { requireGuru } from "@/lib/route-guards";
-import { fetchNilaiRekap, TEST_TYPES, type StudentNilaiSummary } from "@/features/tests/testsApi";
+import {
+  fetchNilaiRekap,
+  deleteAttempt,
+  resetAllAttempts,
+  TEST_TYPES,
+  type StudentNilaiSummary,
+} from "@/features/tests/testsApi";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/_app/rekap-nilai")({
@@ -37,6 +55,8 @@ function RekapNilaiPage() {
   const [rows, setRows] = useState<StudentNilaiSummary[]>(initialRows);
   const [search, setSearch] = useState("");
   const [isLive, setIsLive] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   // Kalau loader jalan ulang (mis. navigasi masuk lagi ke route ini),
   // sinkronkan state lokal dengan data terbaru dari loader.
@@ -96,6 +116,37 @@ function RekapNilaiPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDeleteAttempt = async (attemptId: number) => {
+    setDeletingId(attemptId);
+    try {
+      await deleteAttempt(attemptId);
+      // Realtime channel di bawah bakal refetch otomatis, tapi update state
+      // lokal langsung juga biar kelihatan instan (gak nunggu roundtrip).
+      const fresh = await fetchNilaiRekap();
+      setRows(fresh);
+      toast.success("Nilai dihapus");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menghapus nilai");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleResetAll = async () => {
+    setResetting(true);
+    try {
+      await resetAllAttempts();
+      const fresh = await fetchNilaiRekap();
+      setRows(fresh);
+      toast.success("Semua nilai berhasil direset");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal reset nilai");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -119,10 +170,36 @@ function RekapNilaiPage() {
             ))}
           </p>
         </div>
-        <Button variant="outline" onClick={handleExportCsv} className="gap-1.5">
-          <Download className="h-4 w-4" />
-          Ekspor CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCsv} className="gap-1.5">
+            <Download className="h-4 w-4" />
+            Ekspor CSV
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={resetting} className="gap-1.5">
+                <Trash2 className="h-4 w-4" />
+                {resetting ? "Mereset..." : "Reset Semua Nilai"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset semua nilai?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Ini akan menghapus SEMUA nilai Pretest, Posttest Siklus 1, 2, dan 3 dari SEMUA
+                  siswa. Soal dan data siswa tidak terhapus, cuma nilainya. Tindakan ini tidak bisa
+                  dibatalkan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Ya, Reset Semua
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <Input
@@ -154,11 +231,49 @@ function RekapNilaiPage() {
                 <TableRow key={r.student_id}>
                   <TableCell className="font-medium">{r.student_name}</TableCell>
                   <TableCell className="text-muted-foreground">{r.class_name ?? "-"}</TableCell>
-                  {TEST_TYPES.map((t) => (
-                    <TableCell key={t.type} className="text-right">
-                      {r.scores[t.type] ?? "-"}
-                    </TableCell>
-                  ))}
+                  {TEST_TYPES.map((t) => {
+                    const score = r.scores[t.type];
+                    const attemptId = r.attemptIds[t.type];
+                    return (
+                      <TableCell key={t.type} className="text-right">
+                        {score === null || attemptId === null ? (
+                          "-"
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span>{score}</span>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                                  disabled={deletingId === attemptId}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Hapus nilai ini?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Nilai {t.label} milik {r.student_name} ({score}) akan dihapus.
+                                    Siswa jadi bisa mengerjakan ulang test ini. Tindakan ini tidak
+                                    bisa dibatalkan.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteAttempt(attemptId)}>
+                                    Hapus
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
               {filtered.length === 0 && (
