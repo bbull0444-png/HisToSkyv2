@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, FileQuestion, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { getStoredUser } from "@/features/auth/AuthContext";
 import {
   fetchQuestions,
   fetchMyAttempt,
@@ -13,6 +14,47 @@ import {
   type TestQuestion,
   type TestType,
 } from "@/features/tests/testsApi";
+
+/**
+ * Random generator deterministik (mulberry32) dari sebuah seed angka —
+ * dipakai supaya urutan soal & opsi teracak BEDA per siswa, tapi urutan
+ * yang sama tetap konsisten kalau siswa yang sama refresh halaman
+ * (bukan acak ulang tiap render, yang bakal bikin bingung).
+ */
+function seedFromString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed: number) {
+  let s = seed;
+  return function random() {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(items: T[], rand: () => number): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+interface DisplayQuestion extends TestQuestion {
+  /** Urutan tampil opsi, isinya index ASLI ke array `options` — dipakai
+   * biar penilaian tetap akurat walau urutan tampilnya diacak. */
+  displayOptionOrder: number[];
+}
 
 /**
  * PENTING: komponen ini SENGAJA mengambil data sendiri lewat useEffect
@@ -51,6 +93,29 @@ export function TestTaker({
       cancelled = true;
     };
   }, [testType]);
+
+  // Acak urutan soal + urutan opsi jawaban, seed dari (id siswa + jenis
+  // test) supaya tiap siswa dapat urutan beda, tapi urutan itu tetap SAMA
+  // kalau dia refresh/buka lagi halaman ini (bukan acak ulang tiap render).
+  // Nomor soal & posisi jawaban di answers tetap pakai id/index ASLI dari
+  // DB, jadi penilaian di submitAttempt tidak terpengaruh sama sekali.
+  const orderedQuestions = useMemo<DisplayQuestion[]>(() => {
+    if (questions.length === 0) return [];
+    const studentId = getStoredUser()?.id ?? "anon";
+    const baseSeed = seedFromString(`${studentId}:${testType}`);
+
+    const questionRand = mulberry32(baseSeed);
+    const shuffledQuestions = seededShuffle(questions, questionRand);
+
+    return shuffledQuestions.map((q) => {
+      const optionRand = mulberry32(seedFromString(`${studentId}:${testType}:${q.id}`));
+      const displayOptionOrder = seededShuffle(
+        q.options.map((_, idx) => idx),
+        optionRand
+      );
+      return { ...q, displayOptionOrder };
+    });
+  }, [questions, testType]);
 
   if (loading) {
     return (
@@ -136,7 +201,7 @@ export function TestTaker({
       </div>
 
       <div className="space-y-4">
-        {questions.map((q, idx) => (
+        {orderedQuestions.map((q, idx) => (
           <Card key={q.id}>
             <CardHeader>
               <CardTitle className="flex items-start gap-2 text-base font-semibold">
@@ -152,11 +217,14 @@ export function TestTaker({
                 onValueChange={(v) => setAnswers((prev) => ({ ...prev, [q.id]: Number(v) }))}
                 className="space-y-2"
               >
-                {q.options.map((opt, optIdx) => (
-                  <div key={optIdx} className="flex items-center space-x-2">
-                    <RadioGroupItem value={String(optIdx)} id={`q${q.id}-${optIdx}`} />
-                    <Label htmlFor={`q${q.id}-${optIdx}`} className="cursor-pointer font-normal">
-                      {opt}
+                {q.displayOptionOrder.map((originalIdx, displayIdx) => (
+                  <div key={originalIdx} className="flex items-center space-x-2">
+                    <RadioGroupItem value={String(originalIdx)} id={`q${q.id}-${originalIdx}`} />
+                    <Label htmlFor={`q${q.id}-${originalIdx}`} className="cursor-pointer font-normal">
+                      <span className="mr-1 text-muted-foreground">
+                        {String.fromCharCode(65 + displayIdx)}.
+                      </span>
+                      {q.options[originalIdx]}
                     </Label>
                   </div>
                 ))}
@@ -171,7 +239,7 @@ export function TestTaker({
           ? "Mengirim..."
           : allAnswered
             ? `Kirim ${title}`
-            : `Jawab semua soal dulu (${answeredCount}/${questions.length})`}
+            : `Jawab semua soal dulu (${answeredCount}/${orderedQuestions.length})`}
       </Button>
     </div>
   );

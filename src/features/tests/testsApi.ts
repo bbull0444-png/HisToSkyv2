@@ -115,6 +115,142 @@ export async function deleteQuestion(id: number): Promise<void> {
   await supabase.from("test_questions").delete().eq("id", id);
 }
 
+// ---------- Import Soal Massal (guru) ----------
+
+export interface ParsedBulkQuestion {
+  question_text: string;
+  options: string[];
+  correct_index: number;
+}
+
+export interface BulkParseResult {
+  questions: ParsedBulkQuestion[];
+  errors: string[];
+}
+
+const OPTION_LINE_RE = /^([A-Ea-e])[.)]\s*(.*)$/;
+const ANSWER_LINE_RE = /^(?:jawaban|kunci)\s*[:\-]?\s*([A-Ea-e])\b/i;
+const NUMBERED_LINE_RE = /^\d+[.)]\s*(.*)$/;
+
+/**
+ * Parse teks soal pilihan ganda hasil paste guru jadi list soal terstruktur.
+ * Format yang didukung per soal (bebas nomor pakai "." atau ")"):
+ *
+ *   1. Pertanyaan di sini?
+ *   A. Opsi A
+ *   B. Opsi B
+ *   C. Opsi C
+ *   D. Opsi D
+ *   E. Opsi E
+ *   JAWABAN: C
+ *
+ * Baris "JAWABAN"/"Kunci" (case-insensitive, boleh pakai ":" atau "-")
+ * menutup satu soal. Soal yang gagal di-parse (opsi < 2, tidak ada
+ * jawaban, atau huruf jawaban di luar jumlah opsi) dilaporkan lewat
+ * `errors`, bukan bikin seluruh proses gagal — soal lain tetap jalan.
+ */
+export function parseBulkQuestions(raw: string): BulkParseResult {
+  const lines = raw.split(/\r?\n/);
+  const questions: ParsedBulkQuestion[] = [];
+  const errors: string[] = [];
+
+  let current: { text: string[]; options: string[]; correctLetter: string | null } | null = null;
+  let qNumber = 0;
+
+  const flush = () => {
+    if (!current) return;
+    qNumber += 1;
+    const text = current.text.join(" ").trim();
+    const preview = text.length > 40 ? `${text.slice(0, 40)}...` : text;
+
+    if (!text) {
+      errors.push(`Soal #${qNumber}: teks pertanyaan kosong, dilewati.`);
+      current = null;
+      return;
+    }
+    if (current.options.length < 2) {
+      errors.push(`Soal #${qNumber} ("${preview}"): opsi jawaban kurang dari 2, dilewati.`);
+      current = null;
+      return;
+    }
+    if (!current.correctLetter) {
+      errors.push(`Soal #${qNumber} ("${preview}"): tidak ada baris JAWABAN/KUNCI, dilewati.`);
+      current = null;
+      return;
+    }
+    const correctIndex = current.correctLetter.toUpperCase().charCodeAt(0) - 65;
+    if (correctIndex < 0 || correctIndex >= current.options.length) {
+      errors.push(
+        `Soal #${qNumber} ("${preview}"): jawaban "${current.correctLetter}" di luar jumlah opsi (ada ${current.options.length}), dilewati.`
+      );
+      current = null;
+      return;
+    }
+    questions.push({ question_text: text, options: current.options, correct_index: correctIndex });
+    current = null;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const answerMatch = line.match(ANSWER_LINE_RE);
+    if (answerMatch && current) {
+      current.correctLetter = answerMatch[1];
+      flush();
+      continue;
+    }
+
+    const optionMatch = line.match(OPTION_LINE_RE);
+    if (optionMatch && current) {
+      current.options.push(optionMatch[2].trim());
+      continue;
+    }
+
+    const numberedMatch = line.match(NUMBERED_LINE_RE);
+    if (numberedMatch) {
+      if (current) flush(); // soal sebelumnya belum ada JAWABAN eksplisit -> dilaporkan sebagai error di flush
+      current = { text: [numberedMatch[1].trim()], options: [], correctLetter: null };
+      continue;
+    }
+
+    if (!current) {
+      current = { text: [line], options: [], correctLetter: null };
+    } else if (current.options.length === 0) {
+      // Baris lanjutan pertanyaan yang panjangnya lebih dari 1 baris.
+      current.text.push(line);
+    } else {
+      errors.push(`Baris tidak dikenali, diabaikan: "${line}"`);
+    }
+  }
+  flush(); // tutup soal terakhir kalau ada sisa
+
+  return { questions, errors };
+}
+
+/** Insert banyak soal sekaligus hasil `parseBulkQuestions`, nomor urut lanjut dari yang sudah ada. */
+export async function bulkCreateQuestions(
+  testType: TestType,
+  items: ParsedBulkQuestion[]
+): Promise<number> {
+  if (items.length === 0) return 0;
+
+  const existing = await fetchQuestions(testType);
+  let nextOrder = existing.length > 0 ? Math.max(...existing.map((q) => q.order)) + 1 : 1;
+
+  const rows = items.map((item) => ({
+    test_type: testType,
+    question_order: nextOrder++,
+    question_text: item.question_text,
+    options: item.options,
+    correct_index: item.correct_index,
+  }));
+
+  const { error } = await supabase.from("test_questions").insert(rows);
+  if (error) throw new Error("Gagal import soal: " + error.message);
+  return rows.length;
+}
+
 // ---------- Pengerjaan (siswa) ----------
 
 export async function fetchMyAttempt(testType: TestType): Promise<TestAttempt | null> {

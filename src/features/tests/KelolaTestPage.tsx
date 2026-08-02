@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Check, Upload, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -23,8 +32,11 @@ import {
   updateQuestion,
   deleteQuestion,
   fetchQuestions,
+  parseBulkQuestions,
+  bulkCreateQuestions,
   type TestQuestion,
   type TestType,
+  type BulkParseResult,
 } from "@/features/tests/testsApi";
 
 const EMPTY_OPTIONS = ["", "", "", "", ""];
@@ -39,6 +51,11 @@ export function KelolaTestPage({ title, testType }: { title: string; testType: T
   const [correctIndex, setCorrectIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importPreview, setImportPreview] = useState<BulkParseResult | null>(null);
+  const [importing, setImporting] = useState(false);
 
   // Fetch di dalam komponen (bukan loader) supaya bisa dipakai ulang oleh
   // dua route (kelola-pretest & kelola-posttest) tanpa duplikasi loader.
@@ -100,6 +117,36 @@ export function KelolaTestPage({ title, testType }: { title: string; testType: T
     }
   };
 
+  const resetImport = () => {
+    setImportText("");
+    setImportPreview(null);
+    setImportOpen(false);
+  };
+
+  const handlePreviewImport = () => {
+    if (!importText.trim()) {
+      toast.error("Paste teks soal dulu");
+      return;
+    }
+    setImportPreview(parseBulkQuestions(importText));
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview || importPreview.questions.length === 0) return;
+    setImporting(true);
+    try {
+      const count = await bulkCreateQuestions(testType, importPreview.questions);
+      const refreshed = await fetchQuestions(testType);
+      setQuestions(refreshed);
+      toast.success(`${count} soal berhasil diimport`);
+      resetImport();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal import soal");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -110,12 +157,129 @@ export function KelolaTestPage({ title, testType }: { title: string; testType: T
           </p>
         </div>
         {!formOpen && (
-          <Button onClick={() => setFormOpen(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Tambah Soal
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
+              <Upload className="h-4 w-4" />
+              Import Soal
+            </Button>
+            <Button onClick={() => setFormOpen(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Tambah Soal
+            </Button>
+          </div>
         )}
       </div>
+
+      <Dialog
+        open={importOpen}
+        onOpenChange={(open) => {
+          if (!open) resetImport();
+          else setImportOpen(true);
+        }}
+      >
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Import Soal {title}</DialogTitle>
+            <DialogDescription>
+              Paste banyak soal sekaligus, format per soal:
+            </DialogDescription>
+          </DialogHeader>
+
+          <pre className="rounded-md bg-muted p-3 text-xs leading-relaxed">
+{`1. Pertanyaan di sini?
+A. Opsi A
+B. Opsi B
+C. Opsi C
+D. Opsi D
+E. Opsi E
+JAWABAN: C`}
+          </pre>
+
+          <Textarea
+            value={importText}
+            onChange={(e) => {
+              setImportText(e.target.value);
+              setImportPreview(null);
+            }}
+            placeholder="Paste teks soal di sini..."
+            rows={10}
+            className="font-mono text-xs"
+          />
+
+          {!importPreview && (
+            <Button onClick={handlePreviewImport} variant="outline" className="w-full">
+              Preview
+            </Button>
+          )}
+
+          {importPreview && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{importPreview.questions.length} soal terbaca</Badge>
+                {importPreview.errors.length > 0 && (
+                  <Badge variant="destructive" className="gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {importPreview.errors.length} dilewati
+                  </Badge>
+                )}
+              </div>
+
+              {importPreview.errors.length > 0 && (
+                <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
+                  {importPreview.errors.map((e, i) => (
+                    <p key={i}>{e}</p>
+                  ))}
+                </div>
+              )}
+
+              {importPreview.questions.length > 0 && (
+                <div className="max-h-56 space-y-2 overflow-y-auto">
+                  {importPreview.questions.map((q, i) => (
+                    <div key={i} className="rounded-md border p-2 text-xs">
+                      <p className="font-medium">
+                        {i + 1}. {q.question_text}
+                      </p>
+                      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                        {q.options.map((opt, optIdx) => (
+                          <li
+                            key={optIdx}
+                            className={optIdx === q.correct_index ? "font-medium text-primary" : ""}
+                          >
+                            {String.fromCharCode(65 + optIdx)}. {opt}
+                            {optIdx === q.correct_index ? " ✓" : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportPreview(null)}
+                className="gap-1.5"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit teks
+              </Button>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={resetImport}>
+              Batal
+            </Button>
+            {importPreview && importPreview.questions.length > 0 && (
+              <Button onClick={handleConfirmImport} disabled={importing} className="gap-1.5">
+                <Upload className="h-4 w-4" />
+                {importing ? "Mengimport..." : `Import ${importPreview.questions.length} Soal`}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {formOpen && (
         <Card>
