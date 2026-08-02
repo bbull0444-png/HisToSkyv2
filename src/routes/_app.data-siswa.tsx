@@ -31,9 +31,10 @@ interface Student {
   username: string;
   password: string;
   last_active_at: string | null;
+  is_online: boolean;
 }
 
-type StudentForm = Omit<Student, "id">;
+type StudentForm = Omit<Student, "id" | "last_active_at" | "is_online">;
 
 const emptyForm: StudentForm = {
   full_name: "",
@@ -77,16 +78,47 @@ export const Route = createFileRoute("/_app/data-siswa")({
 
     useEffect(() => {
       loadStudents();
-      // Refresh diam-diam tiap 30 detik biar kolom status tetap update
-      // tanpa guru perlu reload manual. Gak nyalain `loading` biar gak
-      // ada kedip spinner tiap refresh.
-      const id = setInterval(async () => {
-        const { data, error } = await supabase
-          .from("students")
-          .select("*")
-          .order("full_name", { ascending: true });
-        if (!error && data) setStudents(data as Student[]);
-      }, 30_000);
+    }, []);
+
+    // Live update: dengerin perubahan tabel `students` lewat Supabase
+    // Realtime (butuh Realtime Replication diaktifkan buat tabel `students`
+    // di Database > Publications). Begitu ada siswa online/offline atau
+    // heartbeat baru, kolom Status update SAAT ITU JUGA, gak nunggu polling.
+    useEffect(() => {
+      const channel = supabase
+        .channel("data-siswa-live")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "students" },
+          (payload) => {
+            if (payload.eventType === "DELETE") {
+              const oldRow = payload.old as { id: number };
+              setStudents((prev) => prev.filter((s) => s.id !== oldRow.id));
+              return;
+            }
+            const updated = payload.new as Student;
+            setStudents((prev) => {
+              const exists = prev.some((s) => s.id === updated.id);
+              const next = exists
+                ? prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s))
+                : [...prev, updated];
+              return next.sort((a, b) => a.full_name.localeCompare(b.full_name));
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }, []);
+
+    // "X menit lalu" itu teks yang butuh waktu berjalan buat berubah, bukan
+    // cuma nunggu event DB baru. Tanpa ini, teksnya bakal freeze di angka
+    // terakhir selama gak ada siswa lain yang online/offline.
+    const [, forceRerender] = useState(0);
+    useEffect(() => {
+      const id = setInterval(() => forceRerender((t) => t + 1), 30_000);
       return () => clearInterval(id);
     }, []);
 
@@ -361,7 +393,7 @@ export const Route = createFileRoute("/_app/data-siswa")({
                           )}
                         </TableCell>
                         <TableCell>
-                          {isOnline(s.last_active_at) ? (
+                          {isOnline(s) ? (
                             <Badge className="gap-1.5 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                               Aktif sekarang
