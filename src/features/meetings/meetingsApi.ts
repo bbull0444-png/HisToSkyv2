@@ -90,6 +90,7 @@ export async function deleteMeeting(id: number): Promise<void> {
     supabase.from("materi_konten").delete().eq("meeting_id", id),
     supabase.from("meeting_progress").delete().eq("meeting_id", id),
     supabase.from("reflections").delete().eq("meeting_id", id),
+    supabase.from("student_responses").delete().eq("meeting_id", id),
   ]);
   await supabase.from("meetings").delete().eq("id", id);
 

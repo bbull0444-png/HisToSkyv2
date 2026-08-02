@@ -117,7 +117,7 @@ function LoginPage() {
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={role === "guru" ? "Siberyanhusky" : "nama_siswa"}
+                  placeholder={role === "guru" ? "username_guru" : "robert00"}
                   autoComplete="username"
                 />
               </div>

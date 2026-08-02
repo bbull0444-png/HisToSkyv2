@@ -1,8 +1,21 @@
 import { createFileRoute, Link, notFound, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, PartyPopper, Eye } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, CheckCircle2, PartyPopper, Eye, Loader2, Save, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { fetchMeetingById, fetchMeetings } from "@/features/meetings/meetingsApi";
 import { STAGES, type LearningStage } from "@/features/meetings/types";
 import { fetchMateriKonten, type MateriKontenMap } from "@/lib/materi-konten";
@@ -15,6 +28,13 @@ import {
 } from "@/features/meetings/progress";
 import "@/components/editor/editor.css";
 import { getStoredUser } from "@/features/auth/AuthContext";
+import {
+  deleteMyResponse,
+  fetchMyGroupId,
+  fetchMyResponses,
+  saveMyResponse,
+} from "@/features/responses/studentResponses";
+import MyGroupCard from "@/components/kelompok/MyGroupCard";
 
 export const Route = createFileRoute("/_app/materi/$id")({
   // Halaman ini sekarang dipakai DUA role: siswa ngerjain beneran, dan
@@ -164,7 +184,7 @@ function MateriDetail() {
         </div>
       </div>
 
-      <StageContent stage={stage} content={content} />
+      <StageContent stage={stage} content={content} isGuru={isGuru} meetingId={meeting.id} />
 
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={goPrev} disabled={currentIdx === 0}>
@@ -213,9 +233,13 @@ function MateriDetail() {
 function StageContent({
   stage,
   content,
+  isGuru,
+  meetingId,
 }: {
   stage: LearningStage;
   content: MateriKontenMap;
+  isGuru: boolean;
+  meetingId: number;
 }) {
   const label = STAGES.find((s) => s.key === stage)?.label;
   const html = content[stage];
@@ -238,7 +262,164 @@ function StageContent({
             Materi untuk tahap ini belum tersedia.
           </p>
         )}
+
+        {stage === "pembentukanKelompok" && !isGuru && (
+          <div className="mt-6">
+            <MyGroupCard />
+          </div>
+        )}
+
+        {stage === "menulisTanggapan" && !isGuru && (
+          <div className="mt-6">
+            <StudentResponseForm meetingId={meetingId} />
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+function StudentResponseForm({ meetingId }: { meetingId: number }) {
+  const [loading, setLoading] = useState(true);
+  const [groupId, setGroupId] = useState<number | null>(null);
+  const [response, setResponse] = useState("");
+  const [hasSaved, setHasSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const [gid, responseMap] = await Promise.all([fetchMyGroupId(), fetchMyResponses()]);
+      if (cancelled) return;
+      setGroupId(gid);
+      const existing = responseMap[meetingId];
+      if (existing) {
+        setResponse(existing.response);
+        setHasSaved(true);
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingId]);
+
+  const handleSave = async () => {
+    if (!response.trim() || groupId === null) return;
+    setSaving(true);
+    try {
+      await saveMyResponse(meetingId, groupId, response.trim());
+      setHasSaved(true);
+      toast.success("Tanggapan berhasil disimpan");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menyimpan tanggapan. Coba lagi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteMyResponse(meetingId);
+      setResponse("");
+      setHasSaved(false);
+      setConfirmOpen(false);
+      toast.success("Tanggapan dihapus, silakan tulis ulang");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menghapus tanggapan");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Memuat tanggapan...
+      </p>
+    );
+  }
+
+  if (groupId === null) {
+    return (
+      <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+        Kamu belum tergabung dalam kelompok mana pun. Ikuti tahap Pembentukan Kelompok Belajar
+        terlebih dahulu untuk menulis tanggapan.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="mb-2 text-sm font-medium">Tulis Tanggapan</div>
+        <Textarea
+          value={response}
+          onChange={(e) => setResponse(e.target.value)}
+          placeholder="Tulis tanggapan kelompokmu di sini..."
+          rows={6}
+          disabled={hasSaved}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground">
+          {hasSaved && (
+            <span className="flex items-center gap-1 text-primary">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Tanggapan berhasil disimpan
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {hasSaved ? (
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" disabled={deleting} className="gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleting ? "Menghapus..." : "Hapus & Tulis Ulang"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus tanggapan?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tanggapanmu akan dihapus dari penyimpanan. Kamu bisa menulis ulang dari awal.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="gap-1.5">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saving || !response.trim()}
+              className="gap-1.5"
+            >
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {saving ? "Menyimpan..." : "Simpan Tanggapan"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

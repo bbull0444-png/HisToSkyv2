@@ -16,11 +16,17 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppDataSiswaRouteImport } from './routes/_app.data-siswa'
 import { Route as AppKelolaKelompokRouteImport } from './routes/_app.kelola-kelompok'
 import { Route as AppKelolaLkpdRouteImport } from './routes/_app.kelola-lkpd'
-import { Route as AppKelolaQuizRouteImport } from './routes/_app.kelola-quiz'
+import { Route as AppKelolaPosttestSiklus1RouteImport } from './routes/_app.kelola-posttest-siklus1'
+import { Route as AppKelolaPosttestSiklus2RouteImport } from './routes/_app.kelola-posttest-siklus2'
+import { Route as AppKelolaPosttestSiklus3RouteImport } from './routes/_app.kelola-posttest-siklus3'
+import { Route as AppKelolaPretestRouteImport } from './routes/_app.kelola-pretest'
+import { Route as AppKelolaTanggapanRouteImport } from './routes/_app.kelola-tanggapan'
 import { Route as AppLaporanRouteImport } from './routes/_app.laporan'
 import { Route as AppNilaiRouteImport } from './routes/_app.nilai'
 import { Route as AppPengaturanRouteImport } from './routes/_app.pengaturan'
-import { Route as AppPosttestRouteImport } from './routes/_app.posttest'
+import { Route as AppPosttestSiklus1RouteImport } from './routes/_app.posttest-siklus1'
+import { Route as AppPosttestSiklus2RouteImport } from './routes/_app.posttest-siklus2'
+import { Route as AppPosttestSiklus3RouteImport } from './routes/_app.posttest-siklus3'
 import { Route as AppPretestRouteImport } from './routes/_app.pretest'
 import { Route as AppProfilRouteImport } from './routes/_app.profil'
 import { Route as AppRefleksiRouteImport } from './routes/_app.refleksi'
@@ -65,9 +71,32 @@ const AppKelolaLkpdRoute = AppKelolaLkpdRouteImport.update({
   path: '/kelola-lkpd',
   getParentRoute: () => AppRoute,
 } as any)
-const AppKelolaQuizRoute = AppKelolaQuizRouteImport.update({
-  id: '/kelola-quiz',
-  path: '/kelola-quiz',
+const AppKelolaPosttestSiklus1Route =
+  AppKelolaPosttestSiklus1RouteImport.update({
+    id: '/kelola-posttest-siklus1',
+    path: '/kelola-posttest-siklus1',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppKelolaPosttestSiklus2Route =
+  AppKelolaPosttestSiklus2RouteImport.update({
+    id: '/kelola-posttest-siklus2',
+    path: '/kelola-posttest-siklus2',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppKelolaPosttestSiklus3Route =
+  AppKelolaPosttestSiklus3RouteImport.update({
+    id: '/kelola-posttest-siklus3',
+    path: '/kelola-posttest-siklus3',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppKelolaPretestRoute = AppKelolaPretestRouteImport.update({
+  id: '/kelola-pretest',
+  path: '/kelola-pretest',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppKelolaTanggapanRoute = AppKelolaTanggapanRouteImport.update({
+  id: '/kelola-tanggapan',
+  path: '/kelola-tanggapan',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLaporanRoute = AppLaporanRouteImport.update({
@@ -85,9 +114,19 @@ const AppPengaturanRoute = AppPengaturanRouteImport.update({
   path: '/pengaturan',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPosttestRoute = AppPosttestRouteImport.update({
-  id: '/posttest',
-  path: '/posttest',
+const AppPosttestSiklus1Route = AppPosttestSiklus1RouteImport.update({
+  id: '/posttest-siklus1',
+  path: '/posttest-siklus1',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPosttestSiklus2Route = AppPosttestSiklus2RouteImport.update({
+  id: '/posttest-siklus2',
+  path: '/posttest-siklus2',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPosttestSiklus3Route = AppPosttestSiklus3RouteImport.update({
+  id: '/posttest-siklus3',
+  path: '/posttest-siklus3',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPretestRoute = AppPretestRouteImport.update({
@@ -143,11 +182,17 @@ export interface FileRoutesByFullPath {
   '/data-siswa': typeof AppDataSiswaRoute
   '/kelola-kelompok': typeof AppKelolaKelompokRoute
   '/kelola-lkpd': typeof AppKelolaLkpdRoute
-  '/kelola-quiz': typeof AppKelolaQuizRoute
+  '/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
+  '/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
+  '/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
+  '/kelola-pretest': typeof AppKelolaPretestRoute
+  '/kelola-tanggapan': typeof AppKelolaTanggapanRoute
   '/laporan': typeof AppLaporanRoute
   '/nilai': typeof AppNilaiRoute
   '/pengaturan': typeof AppPengaturanRoute
-  '/posttest': typeof AppPosttestRoute
+  '/posttest-siklus1': typeof AppPosttestSiklus1Route
+  '/posttest-siklus2': typeof AppPosttestSiklus2Route
+  '/posttest-siklus3': typeof AppPosttestSiklus3Route
   '/pretest': typeof AppPretestRoute
   '/profil': typeof AppProfilRoute
   '/refleksi': typeof AppRefleksiRoute
@@ -165,11 +210,17 @@ export interface FileRoutesByTo {
   '/data-siswa': typeof AppDataSiswaRoute
   '/kelola-kelompok': typeof AppKelolaKelompokRoute
   '/kelola-lkpd': typeof AppKelolaLkpdRoute
-  '/kelola-quiz': typeof AppKelolaQuizRoute
+  '/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
+  '/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
+  '/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
+  '/kelola-pretest': typeof AppKelolaPretestRoute
+  '/kelola-tanggapan': typeof AppKelolaTanggapanRoute
   '/laporan': typeof AppLaporanRoute
   '/nilai': typeof AppNilaiRoute
   '/pengaturan': typeof AppPengaturanRoute
-  '/posttest': typeof AppPosttestRoute
+  '/posttest-siklus1': typeof AppPosttestSiklus1Route
+  '/posttest-siklus2': typeof AppPosttestSiklus2Route
+  '/posttest-siklus3': typeof AppPosttestSiklus3Route
   '/pretest': typeof AppPretestRoute
   '/profil': typeof AppProfilRoute
   '/refleksi': typeof AppRefleksiRoute
@@ -189,11 +240,17 @@ export interface FileRoutesById {
   '/_app/data-siswa': typeof AppDataSiswaRoute
   '/_app/kelola-kelompok': typeof AppKelolaKelompokRoute
   '/_app/kelola-lkpd': typeof AppKelolaLkpdRoute
-  '/_app/kelola-quiz': typeof AppKelolaQuizRoute
+  '/_app/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
+  '/_app/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
+  '/_app/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
+  '/_app/kelola-pretest': typeof AppKelolaPretestRoute
+  '/_app/kelola-tanggapan': typeof AppKelolaTanggapanRoute
   '/_app/laporan': typeof AppLaporanRoute
   '/_app/nilai': typeof AppNilaiRoute
   '/_app/pengaturan': typeof AppPengaturanRoute
-  '/_app/posttest': typeof AppPosttestRoute
+  '/_app/posttest-siklus1': typeof AppPosttestSiklus1Route
+  '/_app/posttest-siklus2': typeof AppPosttestSiklus2Route
+  '/_app/posttest-siklus3': typeof AppPosttestSiklus3Route
   '/_app/pretest': typeof AppPretestRoute
   '/_app/profil': typeof AppProfilRoute
   '/_app/refleksi': typeof AppRefleksiRoute
@@ -213,11 +270,17 @@ export interface FileRouteTypes {
     | '/data-siswa'
     | '/kelola-kelompok'
     | '/kelola-lkpd'
-    | '/kelola-quiz'
+    | '/kelola-posttest-siklus1'
+    | '/kelola-posttest-siklus2'
+    | '/kelola-posttest-siklus3'
+    | '/kelola-pretest'
+    | '/kelola-tanggapan'
     | '/laporan'
     | '/nilai'
     | '/pengaturan'
-    | '/posttest'
+    | '/posttest-siklus1'
+    | '/posttest-siklus2'
+    | '/posttest-siklus3'
     | '/pretest'
     | '/profil'
     | '/refleksi'
@@ -235,11 +298,17 @@ export interface FileRouteTypes {
     | '/data-siswa'
     | '/kelola-kelompok'
     | '/kelola-lkpd'
-    | '/kelola-quiz'
+    | '/kelola-posttest-siklus1'
+    | '/kelola-posttest-siklus2'
+    | '/kelola-posttest-siklus3'
+    | '/kelola-pretest'
+    | '/kelola-tanggapan'
     | '/laporan'
     | '/nilai'
     | '/pengaturan'
-    | '/posttest'
+    | '/posttest-siklus1'
+    | '/posttest-siklus2'
+    | '/posttest-siklus3'
     | '/pretest'
     | '/profil'
     | '/refleksi'
@@ -258,11 +327,17 @@ export interface FileRouteTypes {
     | '/_app/data-siswa'
     | '/_app/kelola-kelompok'
     | '/_app/kelola-lkpd'
-    | '/_app/kelola-quiz'
+    | '/_app/kelola-posttest-siklus1'
+    | '/_app/kelola-posttest-siklus2'
+    | '/_app/kelola-posttest-siklus3'
+    | '/_app/kelola-pretest'
+    | '/_app/kelola-tanggapan'
     | '/_app/laporan'
     | '/_app/nilai'
     | '/_app/pengaturan'
-    | '/_app/posttest'
+    | '/_app/posttest-siklus1'
+    | '/_app/posttest-siklus2'
+    | '/_app/posttest-siklus3'
     | '/_app/pretest'
     | '/_app/profil'
     | '/_app/refleksi'
@@ -331,11 +406,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppKelolaLkpdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/kelola-quiz': {
-      id: '/_app/kelola-quiz'
-      path: '/kelola-quiz'
-      fullPath: '/kelola-quiz'
-      preLoaderRoute: typeof AppKelolaQuizRouteImport
+    '/_app/kelola-posttest-siklus1': {
+      id: '/_app/kelola-posttest-siklus1'
+      path: '/kelola-posttest-siklus1'
+      fullPath: '/kelola-posttest-siklus1'
+      preLoaderRoute: typeof AppKelolaPosttestSiklus1RouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kelola-posttest-siklus2': {
+      id: '/_app/kelola-posttest-siklus2'
+      path: '/kelola-posttest-siklus2'
+      fullPath: '/kelola-posttest-siklus2'
+      preLoaderRoute: typeof AppKelolaPosttestSiklus2RouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kelola-posttest-siklus3': {
+      id: '/_app/kelola-posttest-siklus3'
+      path: '/kelola-posttest-siklus3'
+      fullPath: '/kelola-posttest-siklus3'
+      preLoaderRoute: typeof AppKelolaPosttestSiklus3RouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kelola-pretest': {
+      id: '/_app/kelola-pretest'
+      path: '/kelola-pretest'
+      fullPath: '/kelola-pretest'
+      preLoaderRoute: typeof AppKelolaPretestRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/kelola-tanggapan': {
+      id: '/_app/kelola-tanggapan'
+      path: '/kelola-tanggapan'
+      fullPath: '/kelola-tanggapan'
+      preLoaderRoute: typeof AppKelolaTanggapanRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/laporan': {
@@ -359,11 +462,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPengaturanRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/posttest': {
-      id: '/_app/posttest'
-      path: '/posttest'
-      fullPath: '/posttest'
-      preLoaderRoute: typeof AppPosttestRouteImport
+    '/_app/posttest-siklus1': {
+      id: '/_app/posttest-siklus1'
+      path: '/posttest-siklus1'
+      fullPath: '/posttest-siklus1'
+      preLoaderRoute: typeof AppPosttestSiklus1RouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/posttest-siklus2': {
+      id: '/_app/posttest-siklus2'
+      path: '/posttest-siklus2'
+      fullPath: '/posttest-siklus2'
+      preLoaderRoute: typeof AppPosttestSiklus2RouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/posttest-siklus3': {
+      id: '/_app/posttest-siklus3'
+      path: '/posttest-siklus3'
+      fullPath: '/posttest-siklus3'
+      preLoaderRoute: typeof AppPosttestSiklus3RouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pretest': {
@@ -437,11 +554,17 @@ interface AppRouteChildren {
   AppDataSiswaRoute: typeof AppDataSiswaRoute
   AppKelolaKelompokRoute: typeof AppKelolaKelompokRoute
   AppKelolaLkpdRoute: typeof AppKelolaLkpdRoute
-  AppKelolaQuizRoute: typeof AppKelolaQuizRoute
+  AppKelolaPosttestSiklus1Route: typeof AppKelolaPosttestSiklus1Route
+  AppKelolaPosttestSiklus2Route: typeof AppKelolaPosttestSiklus2Route
+  AppKelolaPosttestSiklus3Route: typeof AppKelolaPosttestSiklus3Route
+  AppKelolaPretestRoute: typeof AppKelolaPretestRoute
+  AppKelolaTanggapanRoute: typeof AppKelolaTanggapanRoute
   AppLaporanRoute: typeof AppLaporanRoute
   AppNilaiRoute: typeof AppNilaiRoute
   AppPengaturanRoute: typeof AppPengaturanRoute
-  AppPosttestRoute: typeof AppPosttestRoute
+  AppPosttestSiklus1Route: typeof AppPosttestSiklus1Route
+  AppPosttestSiklus2Route: typeof AppPosttestSiklus2Route
+  AppPosttestSiklus3Route: typeof AppPosttestSiklus3Route
   AppPretestRoute: typeof AppPretestRoute
   AppProfilRoute: typeof AppProfilRoute
   AppRefleksiRoute: typeof AppRefleksiRoute
@@ -458,11 +581,17 @@ const AppRouteChildren: AppRouteChildren = {
   AppDataSiswaRoute: AppDataSiswaRoute,
   AppKelolaKelompokRoute: AppKelolaKelompokRoute,
   AppKelolaLkpdRoute: AppKelolaLkpdRoute,
-  AppKelolaQuizRoute: AppKelolaQuizRoute,
+  AppKelolaPosttestSiklus1Route: AppKelolaPosttestSiklus1Route,
+  AppKelolaPosttestSiklus2Route: AppKelolaPosttestSiklus2Route,
+  AppKelolaPosttestSiklus3Route: AppKelolaPosttestSiklus3Route,
+  AppKelolaPretestRoute: AppKelolaPretestRoute,
+  AppKelolaTanggapanRoute: AppKelolaTanggapanRoute,
   AppLaporanRoute: AppLaporanRoute,
   AppNilaiRoute: AppNilaiRoute,
   AppPengaturanRoute: AppPengaturanRoute,
-  AppPosttestRoute: AppPosttestRoute,
+  AppPosttestSiklus1Route: AppPosttestSiklus1Route,
+  AppPosttestSiklus2Route: AppPosttestSiklus2Route,
+  AppPosttestSiklus3Route: AppPosttestSiklus3Route,
   AppPretestRoute: AppPretestRoute,
   AppProfilRoute: AppProfilRoute,
   AppRefleksiRoute: AppRefleksiRoute,
