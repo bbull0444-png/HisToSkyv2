@@ -29,6 +29,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -80,11 +81,19 @@ const teacherNav: NavItem[] = [
 
 export function AppSidebar() {
   const { user, logout } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const items = user?.role === "guru" ? teacherNav : studentNav;
 
   const isActive = (url: string) =>
     url === "/dashboard" ? pathname === url : pathname === url || pathname.startsWith(url + "/");
+
+  // Di mobile, sidebar tampil sebagai overlay (Sheet) -- begitu satu menu
+  // dipilih, tutup otomatis supaya siswa/guru tidak perlu tap tombol
+  // trigger lagi untuk melihat halaman yang baru dibuka.
+  const closeOnMobile = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -109,7 +118,7 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url} className="flex items-center gap-2">
+                    <Link to={item.url} className="flex items-center gap-2" onClick={closeOnMobile}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>

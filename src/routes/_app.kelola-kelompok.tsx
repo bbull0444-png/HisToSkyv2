@@ -65,68 +65,13 @@ function KelolaKelompokPage() {
 async function shuffleGroups() {
   const loadingToast = toast.loading("Mengacak kelompok...");
 
-  // Ambil semua kelompok
-  const { data: allGroups, error: groupError } = await supabase
-    .from("groups")
-    .select("id")
-    .order("id");
+  // Seluruh proses (reset ketua, hapus anggota lama, isi anggota baru)
+  // dijalankan sebagai satu transaksi atomik di database lewat RPC
+  // `shuffle_groups`, sehingga tidak ada lagi jendela waktu di mana
+  // group_members kosong untuk siswa yang sedang membuka halaman materi.
+  const { error } = await supabase.rpc("shuffle_groups");
 
-  if (groupError || !allGroups) {
-    toast.error("Gagal mengambil data kelompok.", {
-      id: loadingToast,
-    });
-    return;
-  }
-
-  // Ambil semua siswa
-  const { data: students, error: studentError } = await supabase
-    .from("students")
-    .select("id")
-    .order("id");
-
-  if (studentError || !students) {
-    toast.error("Gagal mengambil data siswa.", {
-      id: loadingToast,
-    });
-    return;
-  }
-
-  // Reset ketua
-  await supabase
-    .from("groups")
-    .update({
-      leader_student_id: null,
-    })
-    .neq("id", 0);
-
-  // Hapus seluruh anggota
-  await supabase
-    .from("group_members")
-    .delete()
-    .neq("group_id", 0);
-
-  // Fisher-Yates Shuffle
-  const shuffled = [...students];
-
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-
-    [shuffled[i], shuffled[j]] = [
-      shuffled[j],
-      shuffled[i],
-    ];
-  }
-
-  const inserts = shuffled.map((student, index) => ({
-    group_id: allGroups[index % allGroups.length].id,
-    student_id: student.id,
-  }));
-
-  const { error: insertError } = await supabase
-    .from("group_members")
-    .insert(inserts);
-
-  if (insertError) {
+  if (error) {
     toast.error("Gagal mengacak kelompok.", {
       id: loadingToast,
     });

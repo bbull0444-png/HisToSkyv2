@@ -401,6 +401,8 @@ export interface PresentationAppreciation {
   student_id: number;
   target_group_id: number;
   message: string;
+  is_selected: boolean;
+  selected_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -502,6 +504,64 @@ export async function fetchAppreciationsForMeeting(
 export async function deleteAppreciationById(id: number): Promise<void> {
   const { error } = await supabase.from("presentation_appreciations").delete().eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * Guru: tandai apresiasi untuk ditampilkan (atau batal ditampilkan) saat
+ * presentasi. Hanya satu apresiasi aktif per pertemuan -- saat satu
+ * apresiasi dipilih, apresiasi lain di pertemuan yang sama otomatis
+ * dilepas, sama seperti `setQuestionSelected`.
+ */
+export async function setAppreciationSelected(
+  meetingId: number,
+  id: number,
+  selected: boolean,
+): Promise<void> {
+  if (selected) {
+    const { error: deselectError } = await supabase
+      .from("presentation_appreciations")
+      .update({ is_selected: false, selected_at: null })
+      .eq("meeting_id", meetingId)
+      .neq("id", id);
+    if (deselectError) throw deselectError;
+  }
+
+  const { error } = await supabase
+    .from("presentation_appreciations")
+    .update({
+      is_selected: selected,
+      selected_at: selected ? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Apresiasi yang sedang ditandai guru untuk ditampilkan pada halaman Materi siswa. */
+export async function fetchSelectedAppreciation(
+  meetingId: number,
+): Promise<PresentationAppreciationWithRelations | null> {
+  const { data, error } = await supabase
+    .from("presentation_appreciations")
+    .select(
+      `
+      *,
+      students!student_id ( full_name ),
+      groups!target_group_id ( group_name )
+    `,
+    )
+    .eq("meeting_id", meetingId)
+    .eq("is_selected", true)
+    .order("selected_at", { ascending: false })
+    .limit(1);
+
+  if (error || !data || data.length === 0) return null;
+
+  const row = data[0] as any;
+  return {
+    ...row,
+    student_name: asSingle(row.students)?.full_name ?? "Siswa",
+    target_group_name: asSingle(row.groups)?.group_name ?? "-",
+  };
 }
 
 // ---------------------------------------------------------------------------

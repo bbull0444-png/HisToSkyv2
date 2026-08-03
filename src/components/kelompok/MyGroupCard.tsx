@@ -75,106 +75,157 @@ function saveToStorage(userId: number, group: MyGroup) {
   }
 }
 
+type FetchGroupResult =
+  | { status: "assigned"; group: MyGroup }
+  | { status: "not-assigned" }
+  | { status: "error" };
+
+async function fetchLiveGroup(studentId: number): Promise<FetchGroupResult> {
+  try {
+    const { data: memberships, error: membershipError } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .eq("student_id", studentId)
+      .limit(1);
+
+    if (membershipError) throw membershipError;
+
+    const groupId = memberships?.[0]?.group_id;
+    if (!groupId) return { status: "not-assigned" };
+
+    const { data: rows, error } = await supabase
+      .from("group_members")
+      .select(
+        `
+        group_id,
+        groups (
+          id,
+          group_name,
+          leader_student_id
+        ),
+        students (
+          id,
+          full_name
+        )
+      `,
+      )
+      .eq("group_id", groupId)
+      .order("student_id");
+
+    if (error) throw error;
+
+    const groupRows = (rows ?? []) as unknown as GroupMemberRow[];
+    const meta = asSingle(groupRows[0]?.groups);
+    if (!meta) return { status: "not-assigned" };
+
+    const group: MyGroup = {
+      id: meta.id,
+      group_name: meta.group_name,
+      leader_student_id: meta.leader_student_id,
+      members: groupRows.map((row) => {
+        const student = asSingle(row.students);
+        return {
+          id: student?.id ?? -1,
+          full_name: student?.full_name ?? "-",
+        };
+      }),
+    };
+
+    return { status: "assigned", group };
+  } catch (err) {
+    console.error(err);
+    return { status: "error" };
+  }
+}
+
+function isEqualGroup(a: MyGroup | null, b: MyGroup | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.id !== b.id) return false;
+  if (a.group_name !== b.group_name) return false;
+  if (a.leader_student_id !== b.leader_student_id) return false;
+  if (a.members.length !== b.members.length) return false;
+  return a.members.every(
+    (m, i) => m.id === b.members[i].id && m.full_name === b.members[i].full_name,
+  );
+}
+
 export default function MyGroupCard() {
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [group, setGroup] = useState<MyGroup | null>(null);
   const [notAssigned, setNotAssigned] = useState(false);
+
+  const refresh = async (silent: boolean) => {
+    const user = getStoredUser();
+    if (!user) return;
+    const studentId = Number(user.id);
+
+    if (!silent) setLoading(true);
+    setLoadError(false);
+
+    const result = await fetchLiveGroup(studentId);
+
+    if (result.status === "error") {
+      setLoading(false);
+      // Kalau silent (revalidasi background, cache sudah tampil), biarkan
+      // data lama tetap tampil -- satu kegagalan fetch tidak boleh
+      // mengganti tampilan yang sudah benar dengan pesan error.
+      if (!silent) {
+        setLoadError(true);
+        toast.error("Gagal memuat data kelompok. Coba lagi.");
+      }
+      return;
+    }
+
+    if (result.status === "not-assigned") {
+      sessionStorage.removeItem(storageKey(studentId));
+      setNotAssigned(true);
+      setGroup(null);
+      setLoading(false);
+      return;
+    }
+
+    setNotAssigned(false);
+    setGroup((prev) => {
+      if (isEqualGroup(prev, result.group)) return prev;
+      saveToStorage(studentId, result.group);
+      return result.group;
+    });
+    setLoading(false);
+  };
 
   useEffect(() => {
     const user = getStoredUser();
     if (!user) return;
+
     const cached = loadFromStorage(Number(user.id));
     if (cached) setGroup(cached);
+
+    refresh(Boolean(cached));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const determineGroup = async () => {
-    const user = getStoredUser();
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const studentId = Number(user.id);
-
-      const { data: memberships, error: membershipError } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("student_id", studentId)
-        .limit(1);
-
-      if (membershipError) throw membershipError;
-
-      const groupId = memberships?.[0]?.group_id;
-
-      if (!groupId) {
-        setGroup(null);
-        setNotAssigned(true);
-        return;
-      }
-
-      const { data: rows, error } = await supabase
-        .from("group_members")
-        .select(
-          `
-          group_id,
-          groups (
-            id,
-            group_name,
-            leader_student_id
-          ),
-          students (
-            id,
-            full_name
-          )
-        `,
-        )
-        .eq("group_id", groupId)
-        .order("student_id");
-
-      if (error) throw error;
-
-      const groupRows = (rows ?? []) as unknown as GroupMemberRow[];
-      const meta = asSingle(groupRows[0]?.groups);
-
-      if (!meta) {
-        setGroup(null);
-        setNotAssigned(true);
-        return;
-      }
-
-      const result: MyGroup = {
-        id: meta.id,
-        group_name: meta.group_name,
-        leader_student_id: meta.leader_student_id,
-        members: groupRows.map((row) => {
-          const student = asSingle(row.students);
-          return {
-            id: student?.id ?? -1,
-            full_name: student?.full_name ?? "-",
-          };
-        }),
-      };
-
-      saveToStorage(studentId, result);
-      setGroup(result);
-    } catch (err) {
-      console.error(err);
-      toast.error("Gagal memuat data kelompok. Coba lagi.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!group && !notAssigned) {
+  if (loading && !group && !notAssigned) {
     return (
-      <Button onClick={determineGroup} disabled={loading} className="gap-1.5">
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Users className="h-4 w-4" />
-        )}
-        {loading ? "Memuat..." : "Tentukan Kelompok"}
+      <Button disabled className="gap-1.5">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Memuat kelompok...
       </Button>
     );
+  }
+
+  if (loadError && !group && !notAssigned) {
+    return (
+      <Button onClick={() => refresh(false)} className="gap-1.5">
+        <Users className="h-4 w-4" />
+        Coba Lagi
+      </Button>
+    );
+  }
+
+  if (!group && !notAssigned) {
+    return null;
   }
 
   return (

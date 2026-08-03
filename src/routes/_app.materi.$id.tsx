@@ -19,6 +19,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,8 +66,10 @@ import {
   saveMyAppreciation,
   deleteMyAppreciation,
   fetchSelectedQuestion,
+  fetchSelectedAppreciation,
   type GroupProductWithGroup,
   type PresentationQuestionWithRelations,
+  type PresentationAppreciationWithRelations,
 } from "@/features/presentasi/presentasi";
 
 export const Route = createFileRoute("/_app/materi/$id")({
@@ -505,6 +508,8 @@ function PresentationStage({ meetingId, locked }: { meetingId: number; locked: b
 
       <SelectedQuestionBanner meetingId={meetingId} />
 
+      <SelectedAppreciationBanner meetingId={meetingId} />
+
       <PresentationFeedbackSection
         meetingId={meetingId}
         locked={locked}
@@ -566,11 +571,73 @@ function SelectedQuestionBanner({ meetingId }: { meetingId: number }) {
       <CardContent>
         {question ? (
           <div>
-            <div className="text-sm font-medium">{question.student_name}</div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-medium">{question.student_name}</span>
+              <Badge variant="outline">untuk {question.target_group_name}</Badge>
+            </div>
             <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{question.question}</p>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">Guru belum memilih pertanyaan.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SelectedAppreciationBanner({ meetingId }: { meetingId: number }) {
+  const [loading, setLoading] = useState(true);
+  const [appreciation, setAppreciation] = useState<PresentationAppreciationWithRelations | null>(null);
+
+  const load = async () => {
+    const a = await fetchSelectedAppreciation(meetingId);
+    setAppreciation(a);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+
+    // Live-update: begitu guru mengganti apresiasi terpilih di halaman
+    // Moderasi Presentasi, banner ini otomatis ikut berubah tanpa reload.
+    const channel = supabase
+      .channel(`selected-appreciation-${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "presentation_appreciations",
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => load(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
+
+  if (loading) return null;
+
+  return (
+    <Card className="border-primary/40 bg-primary/5">
+      <CardHeader>
+        <CardTitle className="text-base">Apresiasi Terpilih Guru</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {appreciation ? (
+          <div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-medium">{appreciation.student_name}</span>
+              <Badge variant="outline">untuk {appreciation.target_group_name}</Badge>
+            </div>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{appreciation.message}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Guru belum memilih apresiasi.</p>
         )}
       </CardContent>
     </Card>
@@ -634,6 +701,30 @@ function GroupProductSection({ meetingId }: { meetingId: number }) {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
+
+  useEffect(() => {
+    // Live-update: begitu ketua kelompok mana pun (termasuk kelompok lain)
+    // mengunggah/menghapus produk, daftar ini otomatis ikut berubah tanpa
+    // reload -- pola sama dengan banner "pertanyaan terpilih" di bawah.
+    const channel = supabase
+      .channel(`group-products-${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "group_products",
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => load(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId]);
 

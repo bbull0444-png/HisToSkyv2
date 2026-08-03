@@ -40,6 +40,7 @@ import {
   fetchQuestionsForMeeting,
   setQuestionSelected,
   fetchAppreciationsForMeeting,
+  setAppreciationSelected,
   deleteGroupProduct,
   deleteQuestionById,
   deleteAppreciationById,
@@ -193,6 +194,20 @@ function KelolaPresentasiPage() {
     } catch (err) {
       console.error(err);
       toast.error("Gagal memperbarui status pertanyaan");
+    }
+  };
+
+  const toggleAppreciation = async (a: PresentationAppreciationWithRelations) => {
+    if (!meetingId) return;
+    try {
+      // Memilih satu apresiasi otomatis melepas apresiasi lain di
+      // pertemuan yang sama (lihat setAppreciationSelected) -- reload penuh
+      // supaya state lokal tetap konsisten dengan efek itu.
+      await setAppreciationSelected(Number(meetingId), a.id, !a.is_selected);
+      await load(Number(meetingId));
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal memperbarui status apresiasi");
     }
   };
 
@@ -457,38 +472,45 @@ function KelolaPresentasiPage() {
                 <p className="text-sm text-muted-foreground">Belum ada apresiasi masuk.</p>
               ) : (
                 appreciations.map((a) => (
-                  <div key={a.id} className="rounded-lg border p-3 text-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-1">
-                      <span className="font-medium">{a.student_name}</span>
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="outline">untuk {a.target_group_name}</Badge>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Hapus apresiasi dari {a.student_name}?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Apresiasi ini akan dihapus permanen dari daftar.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => handleDeleteAppreciation(a)}
-                              >
-                                Hapus
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                  <div key={a.id} className="flex items-start gap-2 rounded-lg border p-3 text-sm">
+                    <Checkbox
+                      checked={a.is_selected}
+                      onCheckedChange={() => toggleAppreciation(a)}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-1">
+                        <span className="font-medium">{a.student_name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline">untuk {a.target_group_name}</Badge>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Hapus apresiasi dari {a.student_name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Apresiasi ini akan dihapus permanen dari daftar.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => handleDeleteAppreciation(a)}
+                                >
+                                  Hapus
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
+                      <p className="mt-1 whitespace-pre-wrap">{a.message}</p>
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap">{a.message}</p>
                   </div>
                 ))
               )}
