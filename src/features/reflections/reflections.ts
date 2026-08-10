@@ -70,12 +70,23 @@ export async function deleteMyReflection(meetingId: number): Promise<void> {
     .eq("meeting_id", meetingId);
 }
 
-/** Guru: ambil semua refleksi siswa, terbaru dulu, lengkap dengan nama siswa. */
-export async function fetchAllReflectionsForTeacher(): Promise<ReflectionWithStudent[]> {
-  const { data, error } = await supabase
+/**
+ * Guru: ambil refleksi siswa, terbaru dulu, lengkap dengan nama siswa.
+ * Tanpa `meetingId` hasilnya seluruh pertemuan (dipakai statistik dashboard);
+ * dengan `meetingId` hasilnya cuma satu pertemuan (dipakai halaman Refleksi
+ * Siswa yang punya pemilih pertemuan, sama pola dengan Moderasi Presentasi).
+ */
+export async function fetchAllReflectionsForTeacher(
+  meetingId?: number
+): Promise<ReflectionWithStudent[]> {
+  let query = supabase
     .from("reflections")
     .select("*, students(full_name)")
     .order("updated_at", { ascending: false });
+
+  if (meetingId !== undefined) query = query.eq("meeting_id", meetingId);
+
+  const { data, error } = await query;
 
   if (error || !data) return [];
 

@@ -65,7 +65,7 @@ export async function createQuestion(
   testType: TestType,
   questionText: string,
   options: string[],
-  correctIndex: number
+  correctIndex: number,
 ): Promise<TestQuestion | null> {
   const existing = await fetchQuestions(testType);
   const nextOrder = existing.length > 0 ? Math.max(...existing.map((q) => q.order)) + 1 : 1;
@@ -98,7 +98,7 @@ export async function updateQuestion(
   id: number,
   questionText: string,
   options: string[],
-  correctIndex: number
+  correctIndex: number,
 ): Promise<void> {
   await supabase
     .from("test_questions")
@@ -181,7 +181,7 @@ export function parseBulkQuestions(raw: string): BulkParseResult {
     const correctIndex = current.correctLetter.toUpperCase().charCodeAt(0) - 65;
     if (correctIndex < 0 || correctIndex >= current.options.length) {
       errors.push(
-        `Soal #${qNumber} ("${preview}"): jawaban "${current.correctLetter}" di luar jumlah opsi (ada ${current.options.length}), dilewati.`
+        `Soal #${qNumber} ("${preview}"): jawaban "${current.correctLetter}" di luar jumlah opsi (ada ${current.options.length}), dilewati.`,
       );
       current = null;
       return;
@@ -231,7 +231,7 @@ export function parseBulkQuestions(raw: string): BulkParseResult {
 /** Insert banyak soal sekaligus hasil `parseBulkQuestions`, nomor urut lanjut dari yang sudah ada. */
 export async function bulkCreateQuestions(
   testType: TestType,
-  items: ParsedBulkQuestion[]
+  items: ParsedBulkQuestion[],
 ): Promise<number> {
   if (items.length === 0) return 0;
 
@@ -271,7 +271,7 @@ export async function fetchMyAttempt(testType: TestType): Promise<TestAttempt | 
 /** Submit jawaban, auto-nilai di client lalu simpan hasilnya. */
 export async function submitAttempt(
   testType: TestType,
-  answers: Record<number, number>
+  answers: Record<number, number>,
 ): Promise<TestAttempt | null> {
   const studentId = currentStudentId();
   if (studentId === null) {
@@ -309,7 +309,7 @@ export async function fetchAllAttempts(testType: TestType): Promise<TestAttemptW
   const { data, error } = await supabase
     .from("test_attempts")
     .select(
-      "id, student_id, test_type, score, total_questions, correct_count, submitted_at, students(full_name)"
+      "id, student_id, test_type, score, total_questions, correct_count, submitted_at, students(full_name)",
     )
     .eq("test_type", testType)
     .order("submitted_at", { ascending: false });
@@ -343,8 +343,14 @@ export interface StudentNilaiSummary {
 
 /** Gabungan roster siswa asli + skor tiap jenis test, buat Rekap Nilai & Laporan. */
 export async function fetchNilaiRekap(): Promise<StudentNilaiSummary[]> {
+  // Roster diambil dari tabel `students` persis sama dengan halaman Data Siswa
+  // (absensi) — tanpa filter `active`, dan urut nama sesuai. Ini menjamin nama
+  // yang tampil di Rekap Nilai selalu sama dengan daftar absensi siswa.
   const [studentsRes, ...attemptsByType] = await Promise.all([
-    supabase.from("students").select("id, full_name, class_name").eq("active", true),
+    supabase
+      .from("students")
+      .select("id, full_name, class_name")
+      .order("full_name", { ascending: true }),
     ...TEST_TYPES.map((t) => fetchAllAttempts(t.type)),
   ]);
 
@@ -376,6 +382,54 @@ export async function fetchNilaiRekap(): Promise<StudentNilaiSummary[]> {
 export async function deleteAttempt(attemptId: number): Promise<void> {
   const { error } = await supabase.from("test_attempts").delete().eq("id", attemptId);
   if (error) throw new Error("Gagal menghapus nilai. Coba lagi.");
+}
+
+/**
+ * Simpan nilai siswa untuk satu jenis test (dipakai guru isi/ubah nilai manual
+ * di Rekap Nilai). Insert kalau belum ada attempt, update kalau sudah ada.
+ * `total_questions` & `correct_count` dihitung otomatis dari jumlah soal yang
+ * ada, `answers` diisi objek kosong (nilai input manual tidak punya rincian
+ * jawaban per soal).
+ */
+export async function saveAttemptScore(
+  studentId: number,
+  testType: TestType,
+  score: number,
+): Promise<void> {
+  const total = (await fetchQuestions(testType)).length;
+  const correctCount = total > 0 ? Math.round((score / 100) * total) : 0;
+
+  const { data: existing } = await supabase
+    .from("test_attempts")
+    .select("id")
+    .eq("student_id", studentId)
+    .eq("test_type", testType)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("test_attempts")
+      .update({
+        score,
+        total_questions: total,
+        correct_count: correctCount,
+        submitted_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+    if (error) throw new Error("Gagal menyimpan nilai. Coba lagi.");
+    return;
+  }
+
+  const { error } = await supabase.from("test_attempts").insert({
+    student_id: studentId,
+    test_type: testType,
+    score,
+    total_questions: total,
+    correct_count: correctCount,
+    answers: {},
+    submitted_at: new Date().toISOString(),
+  });
+  if (error) throw new Error("Gagal menyimpan nilai. Coba lagi.");
 }
 
 /**
