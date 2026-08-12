@@ -276,7 +276,7 @@ function KelolaPresentasiPage() {
           <SelectContent>
             {meetings.map((m) => (
               <SelectItem key={m.id} value={String(m.id)}>
-                Pertemuan {m.order} — {m.title}
+                Pertemuan {m.order} - {m.title}
               </SelectItem>
             ))}
           </SelectContent>
@@ -290,7 +290,7 @@ function KelolaPresentasiPage() {
               <>
                 <Lock className="h-4 w-4 shrink-0 text-amber-600" />
                 <span>
-                  Sesi presentasi <strong>terkunci</strong> — siswa tidak bisa lagi mengirim/mengubah
+                  Sesi presentasi <strong>terkunci</strong>. Siswa tidak bisa lagi mengirim/mengubah
                   pertanyaan &amp; apresiasi.
                 </span>
               </>
@@ -298,7 +298,7 @@ function KelolaPresentasiPage() {
               <>
                 <Unlock className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span>
-                  Sesi presentasi <strong>terbuka</strong> — siswa masih bisa mengirim/mengubah
+                  Sesi presentasi <strong>terbuka</strong>. Siswa masih bisa mengirim/mengubah
                   pertanyaan &amp; apresiasi.
                 </span>
               </>

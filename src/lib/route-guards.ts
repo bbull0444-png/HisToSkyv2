@@ -3,7 +3,7 @@ import { getStoredUser } from "@/features/auth/AuthContext";
 
 /**
  * Guard untuk route khusus guru. Dipasang di `beforeLoad` route,
- * dijalankan oleh TanStack Router SEBELUM komponen halaman dirender —
+ * dijalankan oleh TanStack Router SEBELUM komponen halaman dirender,
  * jadi siswa yang mengetik URL guru secara langsung tidak akan pernah
  * melihat komponennya sama sekali, bukan sekadar tombolnya disembunyikan.
  *
@@ -19,7 +19,7 @@ import { getStoredUser } from "@/features/auth/AuthContext";
 export function requireGuru() {
   // Guard ini baca localStorage, yang cuma ada di browser. Halaman ini
   // sempat dirender duluan di server (SSR TanStack Start) sebelum sampai
-  // ke browser — kalau kita tetap paksa cek localStorage di server, hasilnya
+  // ke browser, kalau kita tetap paksa cek localStorage di server, hasilnya
   // selalu "null" (localStorage tidak ada di server), sehingga guru asli
   // yang hard-refresh salah dikira belum login dan dilempar ke /login.
   // Jadi guard ini hanya benar-benar menegakkan aturan di sisi client;
@@ -43,7 +43,7 @@ export function requireGuru() {
  * Refleksi Saya, Nilai, Pretest, Posttest). Tanpa ini, guru yang membuka
  * URL siswa langsung akan tetap bisa "mengetik" di halaman tersebut
  * walau tulisannya sebenarnya tidak pernah tersimpan (fungsi Supabase di
- * baliknya menolak akun non-siswa secara diam-diam) — membingungkan dan
+ * baliknya menolak akun non-siswa secara diam-diam), membingungkan dan
  * terkesan seperti macet/nge-bug.
  */
 export function requireSiswa() {

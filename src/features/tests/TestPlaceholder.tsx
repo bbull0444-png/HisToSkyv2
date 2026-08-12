@@ -17,7 +17,7 @@ export function TestPlaceholder({ title, description }: { title: string; descrip
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {title} berisi 20 soal pilihan ganda seputar sejarah Indonesia. Kerjakan dengan jujur —
+            {title} berisi 20 soal pilihan ganda seputar sejarah Indonesia. Kerjakan dengan jujur karena
             hasil ini digunakan sebagai data penelitian pembelajaran CIRC.
           </p>
           <Button>Mulai {title}</Button>

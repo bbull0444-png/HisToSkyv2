@@ -82,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Platform pembelajaran sejarah Indonesia berbasis model Cooperative Integrated Reading and Composition (CIRC).",
       },
-      { property: "og:title", content: "HisToSky — Pembelajaran Sejarah CIRC" },
+      { property: "og:title", content: "HisToSky: Pembelajaran Sejarah CIRC" },
       {
         property: "og:description",
         content:

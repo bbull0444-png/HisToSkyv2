@@ -1,4 +1,4 @@
--- Materi Pertemuan 2 — "Jatuhnya Konstantinopel" (The Fall of Constantinople)
+-- Materi Pertemuan 2, "Jatuhnya Konstantinopel" (The Fall of Constantinople)
 -- Teks diambil PERSIS dari LKPD Pertemuan 2 (Safitry, Utami, & Ilyas, 2021, Bab 1 Subbab A.2)
 -- Gambar diekstrak dari LKPD Pertemuan 2.pdf dan diunggah ke bucket materi-images/2026-08-08/
 -- Struktur 8 step mengikuti Pertemuan 1 (tabel materi_konten).

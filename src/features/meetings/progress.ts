@@ -3,14 +3,14 @@ import { getStoredUser } from "@/features/auth/AuthContext";
 import type { MeetingProgressStatus } from "./types";
 
 /**
- * Progress belajar siswa per pertemuan — disimpan di tabel Supabase
+ * Progress belajar siswa per pertemuan, disimpan di tabel Supabase
  * `meeting_progress` (bukan localStorage lagi), supaya:
  * - Tersimpan lintas device (siswa bisa lanjut belajar dari HP atau laptop).
  * - Bisa dipantau guru dari sisi guru (rekap-nilai, laporan, dst).
  *
  * CATATAN: siswa saat ini login tanpa sesi Supabase Auth sungguhan (lihat
  * AuthContext.tsx), jadi permintaan ke tabel ini berjalan sebagai role
- * "anon". RLS mengizinkan anon baca/tulis baris manapun di tabel ini —
+ * "anon". RLS mengizinkan anon baca/tulis baris manapun di tabel ini,
  * keterbatasan bawaan selama siswa belum migrasi ke Supabase Auth asli.
  */
 
@@ -47,7 +47,7 @@ export async function fetchProgressMap(): Promise<ProgressMap> {
 /**
  * Pertemuan pertama (dalam urutan `orderedMeetingIds`) selalu terbuka.
  * Pertemuan berikutnya terbuka hanya jika pertemuan SEBELUMNYA dalam
- * urutan itu sudah "completed" — dicek lewat urutan, bukan `id - 1`,
+ * urutan itu sudah "completed", dicek lewat urutan, bukan `id - 1`,
  * supaya tetap benar walau ada pertemuan di tengah yang dihapus guru.
  */
 export function isMeetingUnlockedIn(
@@ -76,7 +76,7 @@ export function getMeetingProgressStatusIn(
 /**
  * Tandai pertemuan sudah dibuka siswa (dipanggil sekali saat halaman
  * detail pertemuan mount). Tidak menimpa status "completed" yang sudah
- * ada — pakai INSERT ... ON CONFLICT DO NOTHING.
+ * ada, pakai INSERT ... ON CONFLICT DO NOTHING.
  */
 export async function markMeetingOpened(meetingId: number): Promise<void> {
   const studentId = currentStudentId();

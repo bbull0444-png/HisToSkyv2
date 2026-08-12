@@ -34,7 +34,7 @@ function RefleksiSayaPage() {
   const { publishedMeetings, orderedIds, progressMap, reflectionMap } = Route.useLoaderData();
 
   // Refleksi masuk akal ditulis untuk pertemuan yang sudah mulai dipelajari
-  // (tidak terkunci) — bukan yang belum dibuka sama sekali.
+  // (tidak terkunci), bukan yang belum dibuka sama sekali.
   const availableMeetings = publishedMeetings.filter(
     (m) => getMeetingProgressStatusIn(orderedIds, progressMap, m.id) !== "locked"
   );
@@ -124,7 +124,7 @@ function ReflectionCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">
-          Pertemuan {meetingId} — {meetingTitle}
+          Pertemuan {meetingId} - {meetingTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

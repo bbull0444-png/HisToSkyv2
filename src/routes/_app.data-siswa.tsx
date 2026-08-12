@@ -302,7 +302,7 @@ export const Route = createFileRoute("/_app/data-siswa")({
                           placeholder="password"
                         />
                       </TableCell>
-                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell className="text-muted-foreground">-</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button
                           size="sm"

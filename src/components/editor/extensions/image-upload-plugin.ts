@@ -15,7 +15,7 @@ function genUploadId(): string {
   return `up_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// Placeholder murni DOM (thumbnail + spinner) — UI sementara, bukan node
+// Placeholder murni DOM (thumbnail + spinner), UI sementara, bukan node
 // document. Manipulasi DOM di sini diizinkan karena scope-nya cuma preview
 // upload, bukan konten final.
 function createPlaceholderDOM(file: File): { dom: HTMLElement; blobUrl: string } {
@@ -44,7 +44,7 @@ function createPlaceholderDOM(file: File): { dom: HTMLElement; blobUrl: string }
 }
 
 // DecorationSet adalah single source of truth untuk posisi placeholder.
-// Tidak ada Map<id, pos> terpisah — posisi SELALU dibaca ulang dari
+// Tidak ada Map<id, pos> terpisah, posisi SELALU dibaca ulang dari
 // decoration yang tersimpan, yang otomatis ter-`map()` mengikuti setiap
 // transaction (termasuk edit di tempat lain selagi upload berjalan).
 function findDecorationById(set: DecorationSet, id: string): Decoration | undefined {

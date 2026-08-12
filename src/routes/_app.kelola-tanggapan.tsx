@@ -53,7 +53,7 @@ function KelolaTanggapanPage() {
   const [meetingId, setMeetingId] = useState<string>("all");
 
   useEffect(() => {
-    // Selalu refresh daftar tanggapan sekali saat halaman mount — data
+    // Selalu refresh daftar tanggapan sekali saat halaman mount, data
     // loader cuma jadi initial state dan tidak pernah di-refresh ulang.
     fetchAllResponsesForTeacher().then(setResponses);
   }, []);
@@ -123,7 +123,7 @@ function KelolaTanggapanPage() {
             <SelectItem value="all">Semua Pertemuan</SelectItem>
             {meetingOptions.map((m) => (
               <SelectItem key={m.id} value={String(m.id)}>
-                Pertemuan {m.id} — {m.title}
+                Pertemuan {m.id} - {m.title}
               </SelectItem>
             ))}
           </SelectContent>

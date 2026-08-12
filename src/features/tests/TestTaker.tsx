@@ -18,7 +18,7 @@ import { fetchMeetings } from "@/features/meetings/meetingsApi";
 import { fetchProgressMap } from "@/features/meetings/progress";
 
 /**
- * Random generator deterministik (mulberry32) dari sebuah seed angka —
+ * Random generator deterministik (mulberry32) dari sebuah seed angka,
  * dipakai supaya urutan soal & opsi teracak BEDA per siswa, tapi urutan
  * yang sama tetap konsisten kalau siswa yang sama refresh halaman
  * (bukan acak ulang tiap render, yang bakal bikin bingung).
@@ -53,7 +53,7 @@ function seededShuffle<T>(items: T[], rand: () => number): T[] {
 }
 
 interface DisplayQuestion extends TestQuestion {
-  /** Urutan tampil opsi, isinya index ASLI ke array `options` — dipakai
+  /** Urutan tampil opsi, isinya index ASLI ke array `options`, dipakai
    * biar penilaian tetap akurat walau urutan tampilnya diacak. */
   displayOptionOrder: number[];
 }
@@ -63,7 +63,7 @@ interface DisplayQuestion extends TestQuestion {
  * (bukan lewat `loader` route), karena identitas siswa cuma ada di
  * localStorage browser. Kalau datanya diambil lewat `loader`, render
  * pertama sempat terjadi di SERVER (SSR) yang tidak punya akses ke
- * localStorage sama sekali — hasilnya kadang soal/nilai muncul, kadang
+ * localStorage sama sekali, hasilnya kadang soal/nilai muncul, kadang
  * tidak, tergantung timing. Fetch di useEffect memastikan ini SELALU
  * jalan di browser, konsisten setiap saat.
  */
@@ -78,7 +78,7 @@ export function TestTaker({
   testType: TestType;
   /**
    * Kalau diisi: test ini terkunci sampai siswa menyelesaikan pertemuan
-   * ke-N (1-indexed, berdasarkan URUTAN pertemuan, bukan ID tetap — jadi
+   * ke-N (1-indexed, berdasarkan URUTAN pertemuan, bukan ID tetap, jadi
    * tetap benar walau guru pernah hapus/reorder pertemuan). Contoh:
    * Posttest Siklus 1 -> unlockAfterMeetingOrder={1} (butuh Pertemuan 1
    * selesai), Siklus 2 -> {2}, dst. Kalau tidak diisi (mis. Pretest),
@@ -110,7 +110,7 @@ export function TestTaker({
 
       if (unlockAfterMeetingOrder && meetings && progressMap) {
         // Pertemuan ke-N berdasarkan urutan (meeting_order ascending),
-        // BUKAN id tetap — tetap benar walau ada pertemuan yang dihapus.
+        // BUKAN id tetap, tetap benar walau ada pertemuan yang dihapus.
         const requiredMeeting = meetings[unlockAfterMeetingOrder - 1];
         if (requiredMeeting) {
           const isCompleted = progressMap[requiredMeeting.id] === "completed";

@@ -5,7 +5,7 @@ import { MEETINGS } from "@/features/meetings/data";
 
 /**
  * Reusable teacher "management" page for LKPD / Quiz management.
- * Kept intentionally simple — each entity type just points to the
+ * Kept intentionally simple, each entity type just points to the
  * corresponding stage of a meeting.
  */
 export function SimpleManagePage({

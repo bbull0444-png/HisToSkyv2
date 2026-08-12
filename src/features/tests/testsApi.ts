@@ -147,7 +147,7 @@ const NUMBERED_LINE_RE = /^\d+[.)]\s*(.*)$/;
  * Baris "JAWABAN"/"Kunci" (case-insensitive, boleh pakai ":" atau "-")
  * menutup satu soal. Soal yang gagal di-parse (opsi < 2, tidak ada
  * jawaban, atau huruf jawaban di luar jumlah opsi) dilaporkan lewat
- * `errors`, bukan bikin seluruh proses gagal — soal lain tetap jalan.
+ * `errors`, bukan bikin seluruh proses gagal, soal lain tetap jalan.
  */
 export function parseBulkQuestions(raw: string): BulkParseResult {
   const lines = raw.split(/\r?\n/);
@@ -335,7 +335,7 @@ export interface StudentNilaiSummary {
   /** Skor per jenis test, null kalau belum dikerjakan. */
   scores: Record<TestType, number | null>;
   /**
-   * ID baris `test_attempts` per jenis test — dipakai buat tombol hapus
+   * ID baris `test_attempts` per jenis test, dipakai buat tombol hapus
    * nilai spesifik (per sel) di Rekap Nilai. Null kalau belum ada attempt.
    */
   attemptIds: Record<TestType, number | null>;
@@ -344,7 +344,7 @@ export interface StudentNilaiSummary {
 /** Gabungan roster siswa asli + skor tiap jenis test, buat Rekap Nilai & Laporan. */
 export async function fetchNilaiRekap(): Promise<StudentNilaiSummary[]> {
   // Roster diambil dari tabel `students` persis sama dengan halaman Data Siswa
-  // (absensi) — tanpa filter `active`, dan urut nama sesuai. Ini menjamin nama
+  // (absensi), tanpa filter `active`, dan urut nama sesuai. Ini menjamin nama
   // yang tampil di Rekap Nilai selalu sama dengan daftar absensi siswa.
   const [studentsRes, ...attemptsByType] = await Promise.all([
     supabase
@@ -378,7 +378,7 @@ export async function fetchNilaiRekap(): Promise<StudentNilaiSummary[]> {
   });
 }
 
-/** Hapus satu nilai (1 attempt) spesifik — dipakai tombol hapus per sel di Rekap Nilai. */
+/** Hapus satu nilai (1 attempt) spesifik, dipakai tombol hapus per sel di Rekap Nilai. */
 export async function deleteAttempt(attemptId: number): Promise<void> {
   const { error } = await supabase.from("test_attempts").delete().eq("id", attemptId);
   if (error) throw new Error("Gagal menghapus nilai. Coba lagi.");
@@ -433,7 +433,7 @@ export async function saveAttemptScore(
 }
 
 /**
- * Reset SEMUA nilai — hapus seluruh baris `test_attempts` (pretest +
+ * Reset SEMUA nilai, hapus seluruh baris `test_attempts` (pretest +
  * posttest siklus 1/2/3, semua siswa). Dipakai tombol "Reset Semua Nilai".
  * Tidak menyentuh soal (`test_questions`) atau data siswa (`students`).
  */

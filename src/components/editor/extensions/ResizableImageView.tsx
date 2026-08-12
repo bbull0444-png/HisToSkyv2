@@ -54,7 +54,7 @@ export function ResizableImageView({
 
   // Menyimpan state drag yang sedang berjalan. Karena kita pakai Pointer
   // Capture langsung pada handle, tidak perlu window.addEventListener sama
-  // sekali — semua event pointermove/pointerup mengalir ke handle yang sama.
+  // sekali, semua event pointermove/pointerup mengalir ke handle yang sama.
   const dragState = useRef<{
     startX: number;
     startY: number;

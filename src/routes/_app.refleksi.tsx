@@ -71,7 +71,7 @@ function RefleksiPage() {
     // yang sedang dipilih, halaman ini otomatis refresh tanpa guru perlu
     // pindah/reload halaman. Payload realtime cuma kasih baris mentah (tanpa
     // nama siswa hasil join), jadi cara paling aman & sederhana adalah fetch
-    // ulang daftar lengkap tiap kali ada perubahan — bukan nge-patch satu
+    // ulang daftar lengkap tiap kali ada perubahan, bukan nge-patch satu
     // baris manual.
     const channel = supabase
       .channel(`reflections-live-${id}`)
@@ -98,7 +98,7 @@ function RefleksiPage() {
         <div>
           <h1 className="text-2xl font-bold">Refleksi Siswa</h1>
           <p className="text-sm text-muted-foreground">
-            Kumpulan refleksi dari siswa per pertemuan — diperbarui otomatis secara live.
+            Kumpulan refleksi dari siswa per pertemuan, diperbarui otomatis secara live.
           </p>
         </div>
 
@@ -109,7 +109,7 @@ function RefleksiPage() {
           <SelectContent>
             {meetings.map((m) => (
               <SelectItem key={m.id} value={String(m.id)}>
-                Pertemuan {m.order} — {m.title}
+                Pertemuan {m.order} - {m.title}
               </SelectItem>
             ))}
           </SelectContent>
@@ -119,7 +119,7 @@ function RefleksiPage() {
       {selectedMeeting && (
         <div className="rounded-lg border p-4 text-sm">
           <span className="font-medium">
-            Pertemuan {selectedMeeting.order} — {selectedMeeting.title}
+            Pertemuan {selectedMeeting.order} - {selectedMeeting.title}
           </span>
           <span className="text-muted-foreground">
             {" "}

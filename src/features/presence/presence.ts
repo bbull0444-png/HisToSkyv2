@@ -21,7 +21,7 @@ async function setStatus(online: boolean) {
     .eq("id", studentId);
 
   if (error) {
-    // Sengaja cuma console.error, bukan toast — heartbeat/status jalan
+    // Sengaja cuma console.error, bukan toast, heartbeat/status jalan
     // diam-diam, gak enak kalau muncul notif tiap gagal. Tapi errornya
     // HARUS kelihatan di console biar gampang ke-debug (RLS/kolom hilang,
     // dll), gak ketelen diem-diem.
@@ -41,7 +41,7 @@ async function setStatus(online: boolean) {
  * - Begitu tab dibuka lagi -> langsung set online lagi.
  * - Cleanup (unmount/logout) -> set offline juga.
  *
- * Return function buat berhenti semuanya — panggil di cleanup useEffect.
+ * Return function buat berhenti semuanya, panggil di cleanup useEffect.
  */
 export function startPresenceHeartbeat(): () => void {
   setStatus(true);
@@ -91,7 +91,7 @@ interface PresenceFields {
 
 /**
  * Status online GABUNGAN: percaya flag `is_online` dari DB, tapi tetap
- * dicek ulang lewat waktu (`last_active_at`) sebagai safety-net — kalau
+ * dicek ulang lewat waktu (`last_active_at`) sebagai safety-net, kalau
  * flag-nya masih `true` tapi denyut terakhir udah lebih dari
  * ONLINE_THRESHOLD_MS yang lalu (mis. laptop mati mendadak, event
  * "pagehide" gak sempat kekirim), tetap dianggap offline, bukan nyangkut

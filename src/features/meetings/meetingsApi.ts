@@ -13,7 +13,7 @@ export interface MeetingSummary {
 }
 
 /**
- * Daftar pertemuan sekarang dinamis dari tabel `meetings` di Supabase —
+ * Daftar pertemuan sekarang dinamis dari tabel `meetings` di Supabase,
  * dulunya array statis di data.ts (guru tidak bisa tambah/hapus pertemuan
  * sama sekali). Field per-tahap CIRC (isi materi tiap tahap) tetap di
  * tabel `materi_konten`, tidak berubah.

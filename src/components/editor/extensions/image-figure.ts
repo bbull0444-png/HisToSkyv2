@@ -63,7 +63,7 @@ export const FigCaption = Node.create({
 
 // Figure: parent node berisi `image` (NodeView resize/selection existing di
 // ResizableImageView.tsx, TIDAK diubah dan TIDAK ada NodeView figure
-// terpisah) + `figcaption`. Bersifat opt-in — dokumen lama yang hanya berisi
+// terpisah) + `figcaption`. Bersifat opt-in, dokumen lama yang hanya berisi
 // `<img>` polos tetap valid sebagai node `image` standalone.
 export const ImageFigure = Node.create({
   name: "figure",

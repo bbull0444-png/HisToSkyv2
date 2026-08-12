@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_app/laporan")({
       const klasikal = totalSiswa > 0 ? Math.round((tuntas / totalSiswa) * 100) : null;
       const isTuntas = klasikal !== null && klasikal >= targetKlasikalPct;
       // Berapa siswa lagi yang perlu tuntas (nilai >= KKM) supaya ketuntasan
-      // klasikal siklus ini mencapai target — buat progres "kurang X siswa".
+      // klasikal siklus ini mencapai target, buat progres "kurang X siswa".
       const kurangSiswa =
         klasikal !== null && !isTuntas
           ? Math.max(0, Math.ceil((targetKlasikalPct / 100) * totalSiswa) - tuntas)
@@ -104,7 +104,7 @@ function LaporanPage() {
       <div>
         <h1 className="text-2xl font-bold">Laporan Penelitian</h1>
         <p className="text-sm text-muted-foreground">
-          Ringkasan hasil penelitian penerapan model CIRC di kelas — dihitung otomatis dari data
+          Ringkasan hasil penelitian penerapan model CIRC di kelas, dihitung otomatis dari data
           asli. KKM {kkm}, target ketuntasan klasikal {targetKlasikalPct}%.
         </p>
       </div>

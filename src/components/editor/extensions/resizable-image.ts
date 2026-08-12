@@ -5,7 +5,7 @@ import { NodeSelection } from "@tiptap/pm/state";
 import { ResizableImageView } from "./ResizableImageView";
 import { createImageUploadPlugin } from "./image-upload-plugin";
 
-// Tidak override `name` — extend Image apa adanya. Schema, renderHTML, dan
+// Tidak override `name`, extend Image apa adanya. Schema, renderHTML, dan
 // parseHTML identik dengan HTML lama & upload Supabase yang sudah ada
 // sebelumnya. Tidak ada migrasi database yang dibutuhkan.
 function buildStyle(width: string, align: string) {
@@ -55,7 +55,7 @@ export const ResizableImage = Image.extend({
     ];
   },
 
-  // NodeView resize/selection — TIDAK PERNAH diubah sejak final resize
+  // NodeView resize/selection, TIDAK PERNAH diubah sejak final resize
   // disetujui. ProseMirror otomatis memakai NodeView ini di mana pun node
   // `image` berada, termasuk sebagai child dari node `figure` (caption),
   // sehingga resize/selection/toolbar tetap bekerja tanpa kode tambahan.
@@ -107,7 +107,7 @@ export const ResizableImage = Image.extend({
 
   // Plugin ProseMirror untuk paste (Ctrl+V) & drag-drop image dari OS.
   // Placeholder selama upload berlangsung memakai Decoration.widget murni
-  // (lihat image-upload-plugin.ts) — bukan Node, tidak masuk schema/document.
+  // (lihat image-upload-plugin.ts), bukan Node, tidak masuk schema/document.
   addProseMirrorPlugins() {
     return [createImageUploadPlugin(() => this.editor)];
   },

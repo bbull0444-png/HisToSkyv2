@@ -87,7 +87,7 @@ import {
 export const Route = createFileRoute("/_app/materi/$id")({
   // Halaman ini sekarang dipakai DUA role: siswa ngerjain beneran, dan
   // guru preview lewat tombol "Lihat" di Kelola Materi. Jadi guard-nya
-  // cuma "harus login" (bukan requireSiswa lagi) — pembedaan perilaku per
+  // cuma "harus login" (bukan requireSiswa lagi), pembedaan perilaku per
   // role dilakukan di loader & komponen di bawah.
   beforeLoad: () => {
     if (typeof window === "undefined") return;
@@ -577,7 +577,7 @@ function GuruPenghargaanPanel({ meetingId }: { meetingId: number }) {
 
               {!row.award && (
                 <p className="text-xs text-muted-foreground">
-                  Belum ada apresiasi — anggota kelompok ini belum melihat apa pun di tahap
+                  Belum ada apresiasi. Anggota kelompok ini belum melihat apa pun di tahap
                   Penghargaan.
                 </p>
               )}

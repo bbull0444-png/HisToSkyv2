@@ -46,7 +46,7 @@ export function getStoredUser(): AuthUser | null {
 
 /**
  * Auth logic is intentionally isolated in this provider.
- * Replace `authenticate` with a real API/DB call later —
+ * Replace `authenticate` with a real API/DB call later,
  * the rest of the app only depends on the context surface.
  */
 async function authenticate(
