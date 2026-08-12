@@ -266,7 +266,6 @@ export function Toolbar({ editor, onSave, isSaving }: ToolbarProps) {
 
   const handleAddCaption = () => {
     const applied = editor.chain().focus().wrapImageInFigure().run();
-    console.log("wrapImageInFigure applied:", applied, editor.getHTML());
     if (!applied) {
       toast.info("Pilih gambar terlebih dahulu untuk menambahkan keterangan.");
     }

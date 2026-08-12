@@ -8,17 +8,8 @@ import {
 
 function currentStudentId(): number | null {
   const user = getStoredUser();
-
-  console.log("===== STORED USER =====");
-  console.log(user);
-
   if (!user || user.role !== "siswa") return null;
-
   const id = Number(user.id);
-
-  console.log("===== STUDENT ID =====");
-  console.log(id);
-
   return Number.isFinite(id) ? id : null;
 }
 
@@ -64,24 +55,11 @@ export async function fetchMyGroupContext(): Promise<{ groupId: number; isLeader
   const studentId = currentStudentId();
   if (studentId === null) return null;
 
-  const { data: allMembersUnfiltered } = await supabase
-    .from("group_members")
-    .select("*");
-
-  console.log("===== GROUP_MEMBERS TANPA FILTER (role anon) =====");
-  console.log(allMembersUnfiltered);
-
   const { data: membership, error: membershipError } = await supabase
     .from("group_members")
     .select("group_id")
     .eq("student_id", studentId)
     .limit(1);
-
-console.log("===== MEMBERSHIP =====");
-console.log(membership);
-
-console.log("===== MEMBERSHIP ERROR =====");
-console.log(membershipError);
 
   if (membershipError) {
     console.error("fetchMyGroupContext: gagal membaca group_members:", membershipError);
@@ -96,9 +74,6 @@ console.log(membershipError);
     .select("leader_student_id")
     .eq("id", groupId)
     .maybeSingle();
-
-  console.log("fetchMyGroupContext error:", groupError);
-  console.log("fetchMyGroupContext data:", group);
 
   if (groupError) {
     console.error("fetchMyGroupContext: gagal membaca groups:", groupError);
