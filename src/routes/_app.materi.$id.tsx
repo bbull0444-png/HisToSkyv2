@@ -17,6 +17,8 @@ import {
   HelpCircle,
   Heart,
   Pencil,
+  Award,
+  Star,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +73,16 @@ import {
   type PresentationQuestionWithRelations,
   type PresentationAppreciationWithRelations,
 } from "@/features/presentasi/presentasi";
+import {
+  fetchMyGroupAward,
+  fetchBestGroup,
+  fetchAwardRowsForMeeting,
+  saveGroupAward,
+  setBestGroup,
+  deleteGroupAward,
+  type GroupAwardWithGroup,
+  type GroupAwardRow,
+} from "@/features/penghargaan/penghargaan";
 
 export const Route = createFileRoute("/_app/materi/$id")({
   // Halaman ini sekarang dipakai DUA role: siswa ngerjain beneran, dan
@@ -324,8 +336,363 @@ function StageContent({
             <PresentationStage meetingId={meetingId} locked={presentationLocked} />
           </div>
         )}
+
+        {stage === "penghargaan" &&
+          (isGuru ? (
+            <div className="mt-6">
+              <GuruPenghargaanPanel meetingId={meetingId} />
+            </div>
+          ) : (
+            <div className="mt-6">
+              <PenghargaanStage meetingId={meetingId} />
+            </div>
+          ))}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Tahap Penghargaan dari sisi GURU -- moderasi langsung di tempat, tanpa menu
+ * sidebar terpisah. Semua kelompok diambil dari tabel `groups` (bukan daftar
+ * statis), jadi kelompok yang belum pernah diberi apresiasi tetap muncul dan
+ * punya tempat untuk mulai menulis.
+ */
+function GuruPenghargaanPanel({ meetingId }: { meetingId: number }) {
+  const [rows, setRows] = useState<GroupAwardRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  /** Ketikan per kelompok, dipisah dari `rows` supaya live-update dari
+   *  realtime tidak menimpa tulisan guru yang belum sempat disimpan. */
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [savingGroupId, setSavingGroupId] = useState<number | null>(null);
+
+  const load = async () => {
+    const data = await fetchAwardRowsForMeeting(meetingId);
+    setRows(data);
+    setDrafts((prev) => {
+      const next: Record<number, string> = {};
+      for (const row of data) {
+        next[row.group_id] = prev[row.group_id] ?? row.award?.message ?? "";
+      }
+      return next;
+    });
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+
+    const channel = supabase
+      .channel(`penghargaan-guru-${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "group_awards",
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => load(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
+
+  const handleSave = async (row: GroupAwardRow) => {
+    const message = (drafts[row.group_id] ?? "").trim();
+    if (!message) {
+      toast.error("Tulis apresiasinya dulu");
+      return;
+    }
+    setSavingGroupId(row.group_id);
+    try {
+      await saveGroupAward(meetingId, row.group_id, message);
+      toast.success(`Apresiasi untuk ${row.group_name} tersimpan`);
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menyimpan apresiasi. Coba lagi.");
+    } finally {
+      setSavingGroupId(null);
+    }
+  };
+
+  const handleToggleBest = async (row: GroupAwardRow) => {
+    const next = !row.award?.is_best;
+    try {
+      // Mem-pin satu kelompok otomatis melepas pin kelompok lain
+      // (lihat setBestGroup) -- reload penuh supaya state lokal ikut konsisten.
+      await setBestGroup(meetingId, row.group_id, next);
+      toast.success(
+        next ? `${row.group_name} ditandai sebagai kelompok terbaik` : "Pin kelompok terbaik dilepas",
+      );
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal memperbarui kelompok terbaik");
+    }
+  };
+
+  const handleDelete = async (row: GroupAwardRow) => {
+    try {
+      await deleteGroupAward(meetingId, row.group_id);
+      setDrafts((prev) => ({ ...prev, [row.group_id]: "" }));
+      toast.success(`Apresiasi ${row.group_name} dihapus`);
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menghapus apresiasi");
+    }
+  };
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Memuat daftar kelompok...</p>;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Belum ada kelompok. Buat kelompok dulu lewat menu Kelola Kelompok.
+      </p>
+    );
+  }
+
+  const bestRow = rows.find((r) => r.award?.is_best) ?? null;
+  const sudahDiberiApresiasi = rows.filter((r) => r.award?.message).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm">
+        <Award className="h-4 w-4 shrink-0 text-primary" />
+        <span>
+          Apresiasi terisi <strong>{sudahDiberiApresiasi}</strong> dari{" "}
+          <strong>{rows.length}</strong> kelompok.
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Star
+            className={
+              bestRow
+                ? "h-4 w-4 shrink-0 fill-amber-400 text-amber-500"
+                : "h-4 w-4 shrink-0 text-muted-foreground"
+            }
+          />
+          {bestRow ? (
+            <>
+              Kelompok terbaik: <strong>{bestRow.group_name}</strong>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Kelompok terbaik belum ditandai.</span>
+          )}
+        </span>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {rows.map((row) => {
+          const isBest = row.award?.is_best ?? false;
+          const saved = row.award?.message ?? "";
+          const draft = drafts[row.group_id] ?? "";
+          const dirty = draft.trim() !== saved.trim();
+
+          return (
+            <div
+              key={row.group_id}
+              className={`space-y-3 rounded-lg border p-3 ${isBest ? "border-amber-400 bg-amber-50/40" : ""}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{row.group_name}</span>
+                {isBest && (
+                  <Badge className="gap-1 bg-amber-500 hover:bg-amber-500">
+                    <Star className="h-3 w-3 fill-current" />
+                    Terbaik
+                  </Badge>
+                )}
+              </div>
+
+              <Textarea
+                value={draft}
+                onChange={(e) => setDrafts((prev) => ({ ...prev, [row.group_id]: e.target.value }))}
+                placeholder={`Apresiasi untuk ${row.group_name}, misalnya: kerja sama sangat baik, argumen didukung bukti dari tiga sumber sejarah...`}
+                rows={4}
+              />
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleSave(row)}
+                  disabled={savingGroupId === row.group_id || !dirty}
+                >
+                  {savingGroupId === row.group_id
+                    ? "Menyimpan..."
+                    : saved
+                      ? "Perbarui"
+                      : "Simpan Apresiasi"}
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant={isBest ? "default" : "outline"}
+                  className={isBest ? "gap-1.5 bg-amber-500 hover:bg-amber-600" : "gap-1.5"}
+                  onClick={() => handleToggleBest(row)}
+                >
+                  <Star className={isBest ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"} />
+                  {isBest ? "Lepas Pin" : "Jadikan Terbaik"}
+                </Button>
+
+                {row.award && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="ml-auto h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus apresiasi "{row.group_name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Apresiasi ini akan hilang dari halaman siswa anggota kelompok tersebut.
+                          Kalau kelompok ini sedang ditandai terbaik, pin-nya ikut terlepas.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(row)}
+                        >
+                          Hapus
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+
+              {!row.award && (
+                <p className="text-xs text-muted-foreground">
+                  Belum ada apresiasi — anggota kelompok ini belum melihat apa pun di tahap
+                  Penghargaan.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Tahap Penghargaan dari sisi siswa. Dua hal yang tampil di sini berbeda
+ * cakupannya dan itu disengaja:
+ *   - Apresiasi guru -> HANYA untuk kelompok siswa yang sedang login
+ *     (`fetchMyGroupAward` memfilter berdasarkan kelompoknya sendiri).
+ *   - Kelompok terbaik -> ditampilkan ke SELURUH siswa, apa pun kelompoknya.
+ * Keduanya read-only; yang menulis hanya guru lewat Moderasi Penghargaan.
+ */
+function PenghargaanStage({ meetingId }: { meetingId: number }) {
+  const [loading, setLoading] = useState(true);
+  const [myAward, setMyAward] = useState<GroupAwardWithGroup | null>(null);
+  const [best, setBest] = useState<GroupAwardWithGroup | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      const [mine, bestGroup] = await Promise.all([
+        fetchMyGroupAward(meetingId),
+        fetchBestGroup(meetingId),
+      ]);
+      if (cancelled) return;
+      setMyAward(mine);
+      setBest(bestGroup);
+      setLoading(false);
+    };
+
+    load();
+
+    // Live-update: begitu guru menyimpan apresiasi atau memindah pin kelompok
+    // terbaik, halaman siswa ikut berubah tanpa perlu refresh manual.
+    const channel = supabase
+      .channel(`penghargaan-siswa-${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "group_awards",
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => load(),
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [meetingId]);
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Memuat penghargaan...</p>;
+  }
+
+  const iAmBest = Boolean(best && myAward && best.group_id === myAward.group_id);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Award className="h-4 w-4 shrink-0 text-primary" />
+          <h4 className="text-sm font-semibold">
+            Apresiasi untuk {myAward ? myAward.group_name : "Kelompokmu"}
+          </h4>
+        </div>
+        {myAward?.message ? (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{myAward.message}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Guru belum memberikan apresiasi untuk kelompokmu pada pertemuan ini.
+          </p>
+        )}
+      </div>
+
+      <div className={`rounded-lg border p-4 ${best ? "border-amber-400 bg-amber-50/50" : ""}`}>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Star
+            className={best ? "h-4 w-4 shrink-0 fill-amber-400 text-amber-500" : "h-4 w-4 shrink-0 text-muted-foreground"}
+          />
+          <h4 className="text-sm font-semibold">Kelompok Terbaik Pertemuan Ini</h4>
+          {iAmBest && (
+            <Badge className="gap-1 bg-amber-500 hover:bg-amber-500">
+              <PartyPopper className="h-3 w-3" />
+              Kelompokmu!
+            </Badge>
+          )}
+        </div>
+        {best ? (
+          <>
+            <p className="text-sm font-medium">{best.group_name}</p>
+            {best.best_note && (
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                {best.best_note}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Guru belum menetapkan kelompok terbaik untuk pertemuan ini.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
