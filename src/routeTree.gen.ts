@@ -15,7 +15,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppDataSiswaRouteImport } from './routes/_app.data-siswa'
 import { Route as AppKelolaKelompokRouteImport } from './routes/_app.kelola-kelompok'
-import { Route as AppKelolaLkpdRouteImport } from './routes/_app.kelola-lkpd'
 import { Route as AppKelolaPosttestSiklus1RouteImport } from './routes/_app.kelola-posttest-siklus1'
 import { Route as AppKelolaPosttestSiklus2RouteImport } from './routes/_app.kelola-posttest-siklus2'
 import { Route as AppKelolaPosttestSiklus3RouteImport } from './routes/_app.kelola-posttest-siklus3'
@@ -65,11 +64,6 @@ const AppDataSiswaRoute = AppDataSiswaRouteImport.update({
 const AppKelolaKelompokRoute = AppKelolaKelompokRouteImport.update({
   id: '/kelola-kelompok',
   path: '/kelola-kelompok',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppKelolaLkpdRoute = AppKelolaLkpdRouteImport.update({
-  id: '/kelola-lkpd',
-  path: '/kelola-lkpd',
   getParentRoute: () => AppRoute,
 } as any)
 const AppKelolaPosttestSiklus1Route =
@@ -187,7 +181,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/data-siswa': typeof AppDataSiswaRoute
   '/kelola-kelompok': typeof AppKelolaKelompokRoute
-  '/kelola-lkpd': typeof AppKelolaLkpdRoute
   '/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
   '/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
   '/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
@@ -216,7 +209,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/data-siswa': typeof AppDataSiswaRoute
   '/kelola-kelompok': typeof AppKelolaKelompokRoute
-  '/kelola-lkpd': typeof AppKelolaLkpdRoute
   '/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
   '/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
   '/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
@@ -247,7 +239,6 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/data-siswa': typeof AppDataSiswaRoute
   '/_app/kelola-kelompok': typeof AppKelolaKelompokRoute
-  '/_app/kelola-lkpd': typeof AppKelolaLkpdRoute
   '/_app/kelola-posttest-siklus1': typeof AppKelolaPosttestSiklus1Route
   '/_app/kelola-posttest-siklus2': typeof AppKelolaPosttestSiklus2Route
   '/_app/kelola-posttest-siklus3': typeof AppKelolaPosttestSiklus3Route
@@ -278,7 +269,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/data-siswa'
     | '/kelola-kelompok'
-    | '/kelola-lkpd'
     | '/kelola-posttest-siklus1'
     | '/kelola-posttest-siklus2'
     | '/kelola-posttest-siklus3'
@@ -307,7 +297,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/data-siswa'
     | '/kelola-kelompok'
-    | '/kelola-lkpd'
     | '/kelola-posttest-siklus1'
     | '/kelola-posttest-siklus2'
     | '/kelola-posttest-siklus3'
@@ -337,7 +326,6 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/data-siswa'
     | '/_app/kelola-kelompok'
-    | '/_app/kelola-lkpd'
     | '/_app/kelola-posttest-siklus1'
     | '/_app/kelola-posttest-siklus2'
     | '/_app/kelola-posttest-siklus3'
@@ -409,13 +397,6 @@ declare module '@tanstack/react-router' {
       path: '/kelola-kelompok'
       fullPath: '/kelola-kelompok'
       preLoaderRoute: typeof AppKelolaKelompokRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/kelola-lkpd': {
-      id: '/_app/kelola-lkpd'
-      path: '/kelola-lkpd'
-      fullPath: '/kelola-lkpd'
-      preLoaderRoute: typeof AppKelolaLkpdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/kelola-posttest-siklus1': {
@@ -572,7 +553,6 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppDataSiswaRoute: typeof AppDataSiswaRoute
   AppKelolaKelompokRoute: typeof AppKelolaKelompokRoute
-  AppKelolaLkpdRoute: typeof AppKelolaLkpdRoute
   AppKelolaPosttestSiklus1Route: typeof AppKelolaPosttestSiklus1Route
   AppKelolaPosttestSiklus2Route: typeof AppKelolaPosttestSiklus2Route
   AppKelolaPosttestSiklus3Route: typeof AppKelolaPosttestSiklus3Route
@@ -600,7 +580,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppDataSiswaRoute: AppDataSiswaRoute,
   AppKelolaKelompokRoute: AppKelolaKelompokRoute,
-  AppKelolaLkpdRoute: AppKelolaLkpdRoute,
   AppKelolaPosttestSiklus1Route: AppKelolaPosttestSiklus1Route,
   AppKelolaPosttestSiklus2Route: AppKelolaPosttestSiklus2Route,
   AppKelolaPosttestSiklus3Route: AppKelolaPosttestSiklus3Route,
