@@ -152,3 +152,97 @@ export function calcIndicatorFromScores(
   }
   return benar;
 }
+
+export interface StudentIndicatorDetail {
+  benar: number;
+  jumlahButir: number;
+  flags: { order: number; correct: boolean }[];
+}
+
+export type StudentIndicatorMap = Map<
+  number,
+  Record<TestType, Record<IndicatorCode, StudentIndicatorDetail | null>>
+>;
+
+export async function fetchStudentIndicatorMap(): Promise<StudentIndicatorMap> {
+  const [questionsRes, attemptsRes] = await Promise.all([
+    supabase
+      .from("test_questions")
+      .select("id, test_type, question_order, correct_index"),
+    supabase.from("test_attempts").select("student_id, test_type, answers"),
+  ]);
+
+  const questions = (questionsRes.data ?? []) as {
+    id: number;
+    test_type: TestType;
+    question_order: number;
+    correct_index: number;
+  }[];
+  const attempts = (attemptsRes.data ?? []) as {
+    student_id: number;
+    test_type: TestType;
+    answers: Record<string, number> | null;
+  }[];
+
+  const orderMap = new Map<string, { id: number; correct: number }>();
+  for (const q of questions) {
+    orderMap.set(`${q.test_type}:${q.question_order}`, {
+      id: q.id,
+      correct: q.correct_index,
+    });
+  }
+
+  const map: StudentIndicatorMap = new Map();
+
+  const ensure = (sid: number) => {
+    if (!map.has(sid)) {
+      map.set(sid, {
+        pretest: { I1: null, I2: null, I3: null },
+        posttest_siklus_1: { I1: null, I2: null, I3: null },
+        posttest_siklus_2: { I1: null, I2: null, I3: null },
+        posttest_siklus_3: { I1: null, I2: null, I3: null },
+      });
+    }
+    return map.get(sid)!;
+  };
+
+  for (const att of attempts) {
+    const ans = att.answers as Record<string, number> | null;
+    if (!ans || typeof ans !== "object" || Object.keys(ans).length === 0) continue;
+    const rec = ensure(att.student_id);
+    for (const ind of INDICATORS) {
+      const orders = INDICATOR_MAP[att.test_type][ind.code];
+      let benar = 0;
+      const flags: { order: number; correct: boolean }[] = [];
+      let valid = true;
+      for (const order of orders) {
+        const entry = orderMap.get(`${att.test_type}:${order}`);
+        if (!entry) {
+          valid = false;
+          break;
+        }
+        const chosenById = ans[String(entry.id)];
+        const chosenByOrder = ans[String(order)];
+        const chosen = chosenById !== undefined ? chosenById : chosenByOrder;
+        if (chosen === undefined || chosen === null) {
+          valid = false;
+          break;
+        }
+        const isCorrect = chosen === entry.correct;
+        if (isCorrect) benar += 1;
+        flags.push({ order, correct: isCorrect });
+      }
+      if (!valid) {
+        rec[att.test_type][ind.code] = null;
+      } else {
+        rec[att.test_type][ind.code] = {
+          benar,
+          jumlahButir: orders.length,
+          flags,
+        };
+      }
+    }
+  }
+
+  return map;
+}

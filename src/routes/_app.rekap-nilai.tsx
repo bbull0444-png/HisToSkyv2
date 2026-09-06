@@ -20,8 +20,11 @@ import {
 } from "@/features/tests/testsApi";
 import {
   fetchIndicatorTables,
+  fetchStudentIndicatorMap,
   type IndicatorTable,
+  type StudentIndicatorMap,
 } from "@/features/tests/indicatorStats";
+import { INDICATORS } from "@/features/tests/indicatorMap";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/_app/rekap-nilai")({
@@ -36,13 +39,15 @@ export const Route = createFileRoute("/_app/rekap-nilai")({
     // sampai pindah halaman lalu balik lagi).
     await supabase.auth.getSession();
 
-    const [rows, { data: settings }, indicatorTables] = await Promise.all([
-      fetchNilaiRekap(),
-      supabase.from("settings").select("kkm").eq("id", 1).maybeSingle(),
-      fetchIndicatorTables(),
-    ]);
+    const [rows, { data: settings }, indicatorTables, studentIndicatorMap] =
+      await Promise.all([
+        fetchNilaiRekap(),
+        supabase.from("settings").select("kkm").eq("id", 1).maybeSingle(),
+        fetchIndicatorTables(),
+        fetchStudentIndicatorMap(),
+      ]);
     const kkm = typeof settings?.kkm === "number" ? settings.kkm : 75;
-    return { rows, kkm, indicatorTables };
+    return { rows, kkm, indicatorTables, studentIndicatorMap };
   },
   component: RekapNilaiPage,
 });
@@ -146,16 +151,24 @@ function computeNGainStats(rows: StudentNilaiSummary[]): NGainStat[] {
 }
 
 function RekapNilaiPage() {
-  const { rows: initialRows, kkm, indicatorTables: initialIndicatorTables } =
-    Route.useLoaderData() as {
-      rows: StudentNilaiSummary[];
-      kkm: number;
-      indicatorTables: IndicatorTable[];
-    };
+  const {
+    rows: initialRows,
+    kkm,
+    indicatorTables: initialIndicatorTables,
+    studentIndicatorMap: initialStudentMap,
+  } = Route.useLoaderData() as {
+    rows: StudentNilaiSummary[];
+    kkm: number;
+    indicatorTables: IndicatorTable[];
+    studentIndicatorMap: StudentIndicatorMap;
+  };
   const [rows, setRows] = useState<StudentNilaiSummary[]>(initialRows);
   const [indicatorTables, setIndicatorTables] = useState<IndicatorTable[]>(
     initialIndicatorTables,
   );
+  const [studentIndicatorMap, setStudentIndicatorMap] =
+    useState<StudentIndicatorMap>(initialStudentMap);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [isLive, setIsLive] = useState(false);
 
@@ -164,7 +177,8 @@ function RekapNilaiPage() {
   useEffect(() => {
     setRows(initialRows);
     setIndicatorTables(initialIndicatorTables);
-  }, [initialRows, initialIndicatorTables]);
+    setStudentIndicatorMap(initialStudentMap);
+  }, [initialRows, initialIndicatorTables, initialStudentMap]);
 
   // Live update: dengerin perubahan di tabel `test_attempts` lewat Supabase
   // Realtime. Begitu ada siswa submit/nilai berubah, refetch rekap otomatis
@@ -177,12 +191,14 @@ function RekapNilaiPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "test_attempts" },
         async () => {
-          const [fresh, freshIndicator] = await Promise.all([
+          const [fresh, freshIndicator, freshStudentMap] = await Promise.all([
             fetchNilaiRekap(),
             fetchIndicatorTables(),
+            fetchStudentIndicatorMap(),
           ]);
           setRows(fresh);
           setIndicatorTables(freshIndicator);
+          setStudentIndicatorMap(freshStudentMap);
         },
       )
       .subscribe((status) => {
@@ -209,18 +225,96 @@ function RekapNilaiPage() {
   const nGainStats = useMemo(() => computeNGainStats(rows), [rows]);
 
   const handleExportCsv = () => {
-    const header = ["Nama", "Kelas", ...TEST_TYPES.map((t) => t.label)];
-    const body = filtered.map((r) => [
-      r.student_name,
-      r.class_name ?? "-",
-      ...TEST_TYPES.map((t) => r.scores[t.type] ?? ""),
+    const lines: string[][] = [];
+
+    // Section 1: Statistik Deskriptif
+    lines.push(["Statistik Deskriptif per Tahap Tes (KKM " + kkm + ")"]);
+    lines.push([
+      "Tahap",
+      "N",
+      "Rata-rata",
+      "Median",
+      "SD",
+      "Min",
+      "Maks",
+      "Tuntas",
+      "Ketuntasan Klasikal %",
     ]);
-    const csv = [header, ...body].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    for (const s of stageStats) {
+      lines.push([
+        s.label,
+        String(s.n),
+        s.mean === null ? "-" : s.mean.toFixed(2).replace(".", ","),
+        s.median === null ? "-" : s.median.toFixed(2).replace(".", ","),
+        s.stdDev === null ? "-" : s.stdDev.toFixed(2).replace(".", ","),
+        s.min === null ? "-" : String(s.min),
+        s.max === null ? "-" : String(s.max),
+        `${s.tuntas}/${rows.length}`,
+        s.klasikalPct === null ? "-" : s.klasikalPct.toFixed(2).replace(".", ","),
+      ]);
+    }
+    lines.push([]);
+
+    // Section 2: N-Gain
+    lines.push(["N-Gain Hake Pretest ke Posttest per Siklus"]);
+    lines.push(["Siklus", "N pasangan lengkap", "Rata-rata N-Gain", "Kategori"]);
+    for (const g of nGainStats) {
+      lines.push([
+        g.label,
+        String(g.n),
+        g.avgNGain === null ? "-" : g.avgNGain.toFixed(2).replace(".", ","),
+        g.kategori ?? "-",
+      ]);
+    }
+    lines.push([]);
+
+    // Section 3: Capaian per Indikator (4 tahap x 3 indikator)
+    lines.push(["Capaian per Indikator Historical Consciousness"]);
+    lines.push(["Tahap", "Indikator", "Jumlah Butir", "Rata-rata Jawaban Benar", "Persentase Capaian %", "N"]);
+    for (const tbl of indicatorTables) {
+      for (const r of tbl.rows) {
+        lines.push([
+          tbl.label,
+          `${r.code} ${r.label}`,
+          String(r.jumlahButir),
+          r.rataBenar === null ? "-" : r.rataBenar.toFixed(2).replace(".", ","),
+          r.capaianPct === null ? "-" : r.capaianPct.toFixed(2).replace(".", ","),
+          String(r.n),
+        ]);
+      }
+    }
+    lines.push([]);
+
+    // Section 4: Rincian per Siswa
+    lines.push(["Rincian per Siswa (skor total dan per indikator)"]);
+    const rincianHeader = [
+      "Nama",
+      "Kelas",
+      ...TEST_TYPES.flatMap((t) => [
+        t.label,
+        ...INDICATORS.map((ind) => `${t.label} ${ind.code} (0-4)`),
+      ]),
+    ];
+    lines.push(rincianHeader);
+    for (const r of filtered) {
+      const row: string[] = [r.student_name, r.class_name ?? "-"];
+      const det = studentIndicatorMap.get(r.student_id);
+      for (const t of TEST_TYPES) {
+        row.push(r.scores[t.type] === null ? "" : String(r.scores[t.type]));
+        for (const ind of INDICATORS) {
+          const d = det?.[t.type]?.[ind.code];
+          row.push(d ? String(d.benar) : "");
+        }
+      }
+      lines.push(row);
+    }
+
+    const csv = lines.map((cols) => cols.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "rekap-nilai.csv";
+    a.download = "rekap-nilai-lengkap.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -410,8 +504,11 @@ function RekapNilaiPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{filtered.length} siswa</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Klik baris siswa untuk melihat jawaban benar per nomor soal per indikator. Satu baris terbuka dalam satu waktu.
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -425,33 +522,97 @@ function RekapNilaiPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.student_id}>
-                  <TableCell className="font-medium">{r.student_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.class_name ?? "-"}</TableCell>
-                  {TEST_TYPES.map((t) => {
-                    const score = r.scores[t.type];
-                    const isTuntas = score !== null && score >= kkm;
-                    return (
-                      <TableCell key={t.type} className="text-right">
-                        {score === null ? (
-                          "-"
-                        ) : (
-                          <span className="inline-flex items-center justify-end gap-1">
-                            {score}
-                            {isTuntas && (
-                              <CheckCircle2
-                                className="h-3.5 w-3.5 text-emerald-500"
-                                aria-label={`Tuntas (>= KKM ${kkm})`}
-                              />
-                            )}
+              {filtered.map((r) => {
+                const isExpanded = expandedId === r.student_id;
+                const det = studentIndicatorMap.get(r.student_id);
+                return (
+                  <>
+                    <TableRow
+                      key={r.student_id}
+                      className={`cursor-pointer ${isExpanded ? "bg-muted/50" : ""}`}
+                      onClick={() => setExpandedId(isExpanded ? null : r.student_id)}
+                    >
+                      <TableCell className="font-medium">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs ${isExpanded ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                          >
+                            {isExpanded ? "-" : "+"}
                           </span>
-                        )}
+                          {r.student_name}
+                        </span>
                       </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
+                      <TableCell className="text-muted-foreground">{r.class_name ?? "-"}</TableCell>
+                      {TEST_TYPES.map((t) => {
+                        const score = r.scores[t.type];
+                        const isTuntas = score !== null && score >= kkm;
+                        return (
+                          <TableCell key={t.type} className="text-right">
+                            {score === null ? (
+                              "-"
+                            ) : (
+                              <span className="inline-flex items-center justify-end gap-1">
+                                {score}
+                                {isTuntas && (
+                                  <CheckCircle2
+                                    className="h-3.5 w-3.5 text-emerald-500"
+                                    aria-label={`Tuntas (>= KKM ${kkm})`}
+                                  />
+                                )}
+                              </span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${r.student_id}-detail`}>
+                        <TableCell colSpan={2 + TEST_TYPES.length} className="bg-muted/30 p-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {TEST_TYPES.map((t) => {
+                              const hasAny = INDICATORS.some((ind) => det?.[t.type]?.[ind.code]);
+                              return (
+                                <div key={t.type} className="rounded border bg-card p-2">
+                                  <div className="mb-1 text-xs font-semibold">
+                                    {t.label} {r.scores[t.type] !== null ? `(skor ${r.scores[t.type]})` : "(belum)"}
+                                  </div>
+                                  {!hasAny ? (
+                                    <p className="text-xs text-muted-foreground">Belum ada jawaban lengkap</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {INDICATORS.map((ind) => {
+                                        const d = det?.[t.type]?.[ind.code];
+                                        if (!d) return null;
+                                        return (
+                                          <div key={ind.code} className="text-xs">
+                                            <div className="font-medium">
+                                              {ind.code} {ind.label}: {d.benar}/{d.jumlahButir}
+                                            </div>
+                                            <div className="mt-0.5 flex flex-wrap gap-1">
+                                              {d.flags.map((f) => (
+                                                <span
+                                                  key={f.order}
+                                                  className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs ${f.correct ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"}`}
+                                                >
+                                                  No {f.order} {f.correct ? "benar" : "salah"}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
               {filtered.length === 0 && (
                 <TableRow>
                   <TableCell
