@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Users } from "lucide-react";
+import { Download, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -85,9 +86,59 @@ function KelolaTanggapanPage() {
       .map(([id, title]) => ({ id, title }));
   }, [meetings, responses]);
 
+  const filteredResponses = useMemo(() => {
+    if (meetingId === "all") return responses;
+    return responses.filter((r) => r.meeting_id === Number(meetingId));
+  }, [responses, meetingId]);
+
+  const handleExportCsv = () => {
+    if (meetingId === "all" || filteredResponses.length === 0) return;
+
+    const escapeCsv = (value: string | null | undefined): string => {
+      const str = String(value ?? "");
+      if (str.includes('"') || str.includes(",") || str.includes("\n") || str.includes("\r")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const header = [
+      "No",
+      "Nama Siswa",
+      "Kelompok",
+      "Pertemuan",
+      "Judul Pertemuan",
+      "Tanggapan",
+      "Dibuat",
+      "Diperbarui",
+    ];
+
+    const rows = filteredResponses.map((r, idx) => [
+      String(idx + 1),
+      r.student_name,
+      r.group_name ?? "Tanpa Kelompok",
+      String(r.meeting_id),
+      r.meeting_title,
+      r.response,
+      r.created_at,
+      r.updated_at,
+    ]);
+
+    const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    // BOM agar Excel mengenali UTF-8 dengan benar
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeTitle =
+      filteredResponses[0]?.meeting_title?.replace(/[^a-zA-Z0-9-_ ]/g, "").trim().replace(/\s+/g, "-") ?? "";
+    a.download = `tanggapan-pertemuan-${meetingId}${safeTitle ? `-${safeTitle}` : ""}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const groups = useMemo<GroupedResponses[]>(() => {
-    const filtered =
-      meetingId === "all" ? responses : responses.filter((r) => r.meeting_id === Number(meetingId));
+    const filtered = filteredResponses;
 
     const map = new Map<number | null, StudentResponseWithRelations[]>();
     for (const r of filtered) {
@@ -103,7 +154,9 @@ function KelolaTanggapanPage() {
         groupName: items[0]?.group_name ?? null,
         items: [...items].sort((x, y) => x.student_name.localeCompare(y.student_name)),
       }));
-  }, [responses, meetingId]);
+  }, [filteredResponses]);
+
+  const canExport = meetingId !== "all" && filteredResponses.length > 0;
 
   return (
     <div className="space-y-6">
@@ -115,20 +168,43 @@ function KelolaTanggapanPage() {
           </p>
         </div>
 
-        <Select value={meetingId} onValueChange={setMeetingId}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="Pilih pertemuan" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Pertemuan</SelectItem>
-            {meetingOptions.map((m) => (
-              <SelectItem key={m.id} value={String(m.id)}>
-                Pertemuan {m.id} - {m.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={meetingId} onValueChange={setMeetingId}>
+            <SelectTrigger className="w-[260px]">
+              <SelectValue placeholder="Pilih pertemuan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Pertemuan</SelectItem>
+              {meetingOptions.map((m) => (
+                <SelectItem key={m.id} value={String(m.id)}>
+                  Pertemuan {m.id} - {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            onClick={handleExportCsv}
+            disabled={!canExport}
+            title={
+              meetingId === "all"
+                ? "Pilih satu pertemuan untuk mengunduh CSV"
+                : !canExport
+                  ? "Tidak ada tanggapan untuk diekspor"
+                  : "Unduh CSV untuk pertemuan terpilih"
+            }
+            className="gap-1.5"
+          >
+            <Download className="h-4 w-4" />
+            Ekspor CSV
+          </Button>
+        </div>
       </div>
+      {meetingId === "all" && (
+        <p className="text-xs text-muted-foreground">
+          Pilih satu pertemuan di atas untuk mengaktifkan ekspor CSV per pertemuan.
+        </p>
+      )}
 
       {groups.length === 0 ? (
         <p className="text-sm text-muted-foreground">Belum ada tanggapan yang dikirim siswa.</p>
