@@ -18,6 +18,10 @@ import {
   TEST_TYPES,
   type StudentNilaiSummary,
 } from "@/features/tests/testsApi";
+import {
+  fetchIndicatorTables,
+  type IndicatorTable,
+} from "@/features/tests/indicatorStats";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/_app/rekap-nilai")({
@@ -32,12 +36,13 @@ export const Route = createFileRoute("/_app/rekap-nilai")({
     // sampai pindah halaman lalu balik lagi).
     await supabase.auth.getSession();
 
-    const [rows, { data: settings }] = await Promise.all([
+    const [rows, { data: settings }, indicatorTables] = await Promise.all([
       fetchNilaiRekap(),
       supabase.from("settings").select("kkm").eq("id", 1).maybeSingle(),
+      fetchIndicatorTables(),
     ]);
     const kkm = typeof settings?.kkm === "number" ? settings.kkm : 75;
-    return { rows, kkm };
+    return { rows, kkm, indicatorTables };
   },
   component: RekapNilaiPage,
 });
@@ -141,8 +146,16 @@ function computeNGainStats(rows: StudentNilaiSummary[]): NGainStat[] {
 }
 
 function RekapNilaiPage() {
-  const { rows: initialRows, kkm } = Route.useLoaderData();
+  const { rows: initialRows, kkm, indicatorTables: initialIndicatorTables } =
+    Route.useLoaderData() as {
+      rows: StudentNilaiSummary[];
+      kkm: number;
+      indicatorTables: IndicatorTable[];
+    };
   const [rows, setRows] = useState<StudentNilaiSummary[]>(initialRows);
+  const [indicatorTables, setIndicatorTables] = useState<IndicatorTable[]>(
+    initialIndicatorTables,
+  );
   const [search, setSearch] = useState("");
   const [isLive, setIsLive] = useState(false);
 
@@ -150,7 +163,8 @@ function RekapNilaiPage() {
   // sinkronkan state lokal dengan data terbaru dari loader.
   useEffect(() => {
     setRows(initialRows);
-  }, [initialRows]);
+    setIndicatorTables(initialIndicatorTables);
+  }, [initialRows, initialIndicatorTables]);
 
   // Live update: dengerin perubahan di tabel `test_attempts` lewat Supabase
   // Realtime. Begitu ada siswa submit/nilai berubah, refetch rekap otomatis
@@ -163,8 +177,12 @@ function RekapNilaiPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "test_attempts" },
         async () => {
-          const fresh = await fetchNilaiRekap();
+          const [fresh, freshIndicator] = await Promise.all([
+            fetchNilaiRekap(),
+            fetchIndicatorTables(),
+          ]);
           setRows(fresh);
+          setIndicatorTables(freshIndicator);
         },
       )
       .subscribe((status) => {
@@ -313,6 +331,74 @@ function RekapNilaiPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Capaian per Indikator Historical Consciousness (additive only, sesuai Supabase) */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">
+            Capaian per Indikator Historical Consciousness
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Dihitung otomatis dari jawaban per butir dikali kunci per butir.
+            Tiap indikator 4 butir sesuai Tabel 3.12 sampai 3.14 BAB 3. Rata-rata
+            jawaban benar adalah rerata benar per indikator 0 sampai 4.
+            Persentase capaian adalah rata dibagi 4 dikali 100 persen.
+          </p>
+        </div>
+        {indicatorTables.map((tbl) => (
+          <Card key={tbl.testType}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">
+                Capaian {tbl.label} per Indikator Historical Consciousness
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                N = {tbl.rows[0]?.n ?? 0} siswa (yang punya jawaban lengkap untuk
+                tahap ini)
+              </p>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Indikator</TableHead>
+                    <TableHead className="text-right">Jumlah Butir</TableHead>
+                    <TableHead className="text-right">
+                      Rata-rata Jawaban Benar
+                    </TableHead>
+                    <TableHead className="text-right">Persentase Capaian</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tbl.rows.map((r, i) => (
+                    <TableRow key={r.code}>
+                      <TableCell>
+                        {i + 1}. {r.label}
+                      </TableCell>
+                      <TableCell className="text-right">{r.jumlahButir}</TableCell>
+                      <TableCell className="text-right">
+                        {r.rataBenar === null
+                          ? "-"
+                          : r.rataBenar.toLocaleString("id-ID", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {r.capaianPct === null
+                          ? "-"
+                          : `${r.capaianPct.toLocaleString("id-ID", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}%`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <Input
         placeholder="Cari nama siswa..."
