@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -47,6 +49,50 @@ function RefleksiPage() {
   const [loading, setLoading] = useState(true);
 
   const selectedMeeting = meetings.find((m) => String(m.id) === meetingId) ?? null;
+
+  const handleExportCsv = () => {
+    if (!selectedMeeting || reflections.length === 0) return;
+
+    const escapeCsv = (value: string | null | undefined): string => {
+      const str = String(value ?? "");
+      if (str.includes('"') || str.includes(",") || str.includes("\n") || str.includes("\r")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const header = [
+      "No",
+      "Nama Siswa",
+      "Siklus",
+      "Pertemuan",
+      "Judul Pertemuan",
+      "Isi Refleksi",
+      "Dibuat",
+      "Diperbarui",
+    ];
+
+    const rows = reflections.map((r, idx) => [
+      String(idx + 1),
+      r.student_name,
+      `Siklus ${selectedMeeting.order}`,
+      String(selectedMeeting.order),
+      selectedMeeting.title,
+      r.content,
+      r.created_at ?? "",
+      r.updated_at ?? "",
+    ]);
+
+    const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeTitle = selectedMeeting.title.replace(/[^a-zA-Z0-9-_ ]/g, "").trim().replace(/\s+/g, "-");
+    a.download = `refleksi-pertemuan-${meetingId}${safeTitle ? `-${safeTitle}` : ""}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (!meetingId) {
@@ -102,18 +148,36 @@ function RefleksiPage() {
           </p>
         </div>
 
-        <Select value={meetingId} onValueChange={setMeetingId}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="Pilih pertemuan" />
-          </SelectTrigger>
-          <SelectContent>
-            {meetings.map((m) => (
-              <SelectItem key={m.id} value={String(m.id)}>
-                Pertemuan {m.order} - {m.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={meetingId} onValueChange={setMeetingId}>
+            <SelectTrigger className="w-[260px]">
+              <SelectValue placeholder="Pilih pertemuan" />
+            </SelectTrigger>
+            <SelectContent>
+              {meetings.map((m) => (
+                <SelectItem key={m.id} value={String(m.id)}>
+                  Pertemuan {m.order} - {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            onClick={handleExportCsv}
+            disabled={!selectedMeeting || reflections.length === 0}
+            title={
+              !selectedMeeting
+                ? "Pilih pertemuan terlebih dahulu"
+                : reflections.length === 0
+                  ? "Tidak ada refleksi untuk diekspor"
+                  : "Unduh CSV untuk pertemuan terpilih"
+            }
+            className="gap-1.5"
+          >
+            <Download className="h-4 w-4" />
+            Ekspor CSV
+          </Button>
+        </div>
       </div>
 
       {selectedMeeting && (

@@ -259,6 +259,101 @@ function KelolaPresentasiPage() {
     }
   };
 
+  const handleExportCsv = () => {
+    if (!selectedMeeting) return;
+    const total = products.length + questions.length + appreciations.length;
+    if (total === 0) return;
+
+    const escapeCsv = (value: string | null | undefined): string => {
+      const str = String(value ?? "");
+      if (str.includes('"') || str.includes(",") || str.includes("\n") || str.includes("\r")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const siklus = `Siklus ${selectedMeeting.order}`;
+    const pertemuan = String(selectedMeeting.order);
+    const judulPertemuan = selectedMeeting.title;
+
+    const lines: string[][] = [];
+
+    // Seksi 1: Produk Kelompok
+    lines.push([`Produk Kelompok - ${siklus} - Pertemuan ${pertemuan} - ${judulPertemuan}`]);
+    lines.push(["No", "Siklus", "Pertemuan", "Judul Pertemuan", "Nama Kelompok", "Nama File", "Tipe File", "URL File", "Diunggah"]);
+    if (products.length === 0) {
+      lines.push(["-", siklus, pertemuan, judulPertemuan, "Belum ada produk", "-", "-", "-", "-"]);
+    } else {
+      products.forEach((p, idx) => {
+        lines.push([
+          String(idx + 1),
+          siklus,
+          pertemuan,
+          judulPertemuan,
+          p.group_name,
+          p.file_name,
+          p.file_type,
+          p.file_url,
+          (p as unknown as { created_at?: string }).created_at ?? "",
+        ]);
+      });
+    }
+    lines.push([]);
+
+    // Seksi 2: Pertanyaan
+    lines.push([`Pertanyaan - ${siklus} - Pertemuan ${pertemuan} - ${judulPertemuan}`]);
+    lines.push(["No", "Siklus", "Pertemuan", "Judul Pertemuan", "Penanya", "Untuk Kelompok", "Pertanyaan", "Dipilih", "Waktu"]);
+    if (questions.length === 0) {
+      lines.push(["-", siklus, pertemuan, judulPertemuan, "-", "-", "Belum ada pertanyaan", "-", "-"]);
+    } else {
+      questions.forEach((q, idx) => {
+        lines.push([
+          String(idx + 1),
+          siklus,
+          pertemuan,
+          judulPertemuan,
+          q.student_name,
+          q.target_group_name,
+          q.question,
+          q.is_selected ? "Ya" : "Tidak",
+          (q as unknown as { created_at?: string }).created_at ?? "",
+        ]);
+      });
+    }
+    lines.push([]);
+
+    // Seksi 3: Apresiasi
+    lines.push([`Apresiasi - ${siklus} - Pertemuan ${pertemuan} - ${judulPertemuan}`]);
+    lines.push(["No", "Siklus", "Pertemuan", "Judul Pertemuan", "Pemberi", "Untuk Kelompok", "Pesan Apresiasi", "Dipilih", "Waktu"]);
+    if (appreciations.length === 0) {
+      lines.push(["-", siklus, pertemuan, judulPertemuan, "-", "-", "Belum ada apresiasi", "-", "-"]);
+    } else {
+      appreciations.forEach((a, idx) => {
+        lines.push([
+          String(idx + 1),
+          siklus,
+          pertemuan,
+          judulPertemuan,
+          a.student_name,
+          a.target_group_name,
+          a.message,
+          a.is_selected ? "Ya" : "Tidak",
+          (a as unknown as { created_at?: string }).created_at ?? "",
+        ]);
+      });
+    }
+
+    const csv = lines.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeTitle = judulPertemuan.replace(/[^a-zA-Z0-9-_ ]/g, "").trim().replace(/\s+/g, "-");
+    a.download = `presentasi-pertemuan-${meetingId}${safeTitle ? `-${safeTitle}` : ""}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -269,18 +364,36 @@ function KelolaPresentasiPage() {
           </p>
         </div>
 
-        <Select value={meetingId} onValueChange={setMeetingId}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="Pilih pertemuan" />
-          </SelectTrigger>
-          <SelectContent>
-            {meetings.map((m) => (
-              <SelectItem key={m.id} value={String(m.id)}>
-                Pertemuan {m.order} - {m.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={meetingId} onValueChange={setMeetingId}>
+            <SelectTrigger className="w-[260px]">
+              <SelectValue placeholder="Pilih pertemuan" />
+            </SelectTrigger>
+            <SelectContent>
+              {meetings.map((m) => (
+                <SelectItem key={m.id} value={String(m.id)}>
+                  Pertemuan {m.order} - {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            onClick={handleExportCsv}
+            disabled={!selectedMeeting || (products.length + questions.length + appreciations.length === 0)}
+            title={
+              !selectedMeeting
+                ? "Pilih pertemuan terlebih dahulu"
+                : products.length + questions.length + appreciations.length === 0
+                  ? "Tidak ada data presentasi untuk diekspor"
+                  : "Unduh CSV untuk pertemuan terpilih"
+            }
+            className="gap-1.5"
+          >
+            <Download className="h-4 w-4" />
+            Ekspor CSV
+          </Button>
+        </div>
       </div>
 
       {selectedMeeting && (
